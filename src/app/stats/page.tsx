@@ -64,7 +64,8 @@ export default function StatsPage() {
   async function handleReset() {
     if (!user) return;
     setResetting(true);
-    await supabase.from("user_answers").delete().eq("user_id", user.id);
+    // Server-side delete — uses service role, safe on page unload/refresh
+    await fetch("/api/reset-stats", { method: "DELETE" });
     setResetting(false);
     setResetOpen(false);
     setResetDone(true);

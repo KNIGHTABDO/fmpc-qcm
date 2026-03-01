@@ -221,8 +221,9 @@ export async function POST(req: NextRequest) {
           execute: async ({ query, limit = 5 }) => {
             try {
               const safeLimit = Math.min(Math.max(limit, 1), 8);
+              const serviceSb = getServiceSupabase(); // bypass RLS for question reads
 
-              const { data: d1 } = await supabase
+              const { data: d1 } = await serviceSb
                 .from("questions")
                 .select(QCM_SELECT)
                 .ilike("texte", "%" + query + "%")
@@ -241,7 +242,7 @@ export async function POST(req: NextRequest) {
               const merged: unknown[] = [];
 
               for (const kw of keywords) {
-                const { data } = await supabase.from("questions").select(QCM_SELECT).ilike("texte", "%" + kw + "%").limit(safeLimit);
+                const { data } = await serviceSb.from("questions").select(QCM_SELECT).ilike("texte", "%" + kw + "%").limit(safeLimit);
                 if (data) {
                   for (const q of data) {
                     const row = q as { id: string };
