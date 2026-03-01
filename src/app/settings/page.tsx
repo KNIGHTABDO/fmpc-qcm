@@ -14,7 +14,9 @@ interface GhModel {
   publisher: string;
   tier?: string;
   is_default?: boolean;
-  is_default?: boolean;
+  premium_multiplier?: number;
+  supports_tools?: boolean;
+  supports_vision?: boolean;
 }
 
 function modelLabel(id: string): string {
@@ -289,7 +291,12 @@ export default function SettingsPage() {
                                 <div className="flex items-center gap-1.5">
                                   <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: PROVIDER_COLORS[m.publisher] ?? "rgba(255,255,255,0.3)" }} />
                                   <span className="text-xs" style={{ color: "var(--text-muted)" }}>{m.publisher}</span>
-                                  {m.tier === "premium" && <span className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold" style={{ background: "rgba(168,85,247,0.12)", color: "#c084fc" }}>PRO</span>}
+                                  {(() => {
+                                    const mp = (m as GhModel & { premium_multiplier?: number }).premium_multiplier;
+                                    if (mp === 3) return <span className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold tabular-nums" style={{ background: "rgba(248,113,113,0.12)", color: "#f87171", border: "1px solid rgba(248,113,113,0.2)" }}>3×</span>;
+                                    if (mp === 1) return <span className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold tabular-nums" style={{ background: "rgba(168,85,247,0.12)", color: "#c084fc", border: "1px solid rgba(168,85,247,0.2)" }}>1×</span>;
+                                    return <span className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold" style={{ background: "rgba(34,197,94,0.1)", color: "#4ade80", border: "1px solid rgba(34,197,94,0.15)" }}>Gratuit</span>;
+                                  })()}
                                   {(m as GhModel & { is_default?: boolean }).is_default && <span className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold" style={{ background: "rgba(34,197,94,0.1)", color: "#4ade80" }}>défaut</span>}
                                 </div>
                               )}

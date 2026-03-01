@@ -211,7 +211,12 @@ function ModelPicker({ models, selected, onSelect, loading, quotaRemaining }: {
                       onMouseLeave={e => { if (selected !== m.id) (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}>
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-medium" style={{ color: selected === m.id ? (PROVIDER_COLORS[provider] ?? "#10a37f") : "rgba(255,255,255,0.85)" }}>{m.name}</span>
-                        {m.tier === "premium" && <span className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold" style={{ background: "rgba(168,85,247,0.12)", color: "#c084fc", border: "1px solid rgba(168,85,247,0.15)" }}>PRO</span>}
+                        {(() => {
+                          const mp = (m as FetchedModel & { premium_multiplier?: number }).premium_multiplier;
+                          if (mp === 3) return <span className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold tabular-nums" style={{ background: "rgba(248,113,113,0.12)", color: "#f87171", border: "1px solid rgba(248,113,113,0.2)" }}>3×</span>;
+                          if (mp === 1) return <span className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold tabular-nums" style={{ background: "rgba(168,85,247,0.12)", color: "#c084fc", border: "1px solid rgba(168,85,247,0.2)" }}>1×</span>;
+                          return <span className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold" style={{ background: "rgba(34,197,94,0.1)", color: "#4ade80", border: "1px solid rgba(34,197,94,0.15)" }}>Gratuit</span>;
+                        })()}
                         {m.is_default && <span className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold" style={{ background: "rgba(16,163,127,0.1)", color: "#10a37f", border: "1px solid rgba(16,163,127,0.15)" }}>défaut</span>}
                       </div>
                       {selected === m.id && <Check className="w-3.5 h-3.5 flex-shrink-0" style={{ color: PROVIDER_COLORS[provider] ?? "#10a37f" }} />}
