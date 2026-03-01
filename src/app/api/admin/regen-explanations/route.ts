@@ -109,7 +109,7 @@ export async function POST(req: NextRequest) {
     if (!explanation) { errors.push(q.id); continue; }
 
     const { error: upsertErr } = await db.from("ai_explanations").upsert(
-      { question_id: q.id, explanation, generated_by: admin.id, model_used: model },
+      { question_id: q.id, explanation, generated_by: "admin", model_used: model },
       { onConflict: "question_id" }
     );
     if (upsertErr) errors.push(q.id);
