@@ -236,6 +236,9 @@ export async function POST(req: NextRequest) {
     return new Response(stream, { headers });
   } catch (e) {
     console.error("[ai-explain] unhandled error:", e);
-    return new Response("[]", { headers, status: 200 });
+    return new Response(
+      JSON.stringify({ error: "server_error", message: "Service temporairement indisponible." }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
+    );
   }
 }
