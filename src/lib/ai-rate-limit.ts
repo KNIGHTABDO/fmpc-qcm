@@ -1,74 +1,55 @@
 // @ts-nocheck
 /**
- * ZeroQCM — AI Category Rate Limiter
+ * ZeroQCM — AI Usage Rate Limiter
  *
- * Limits are SHARED POOLS per category (not per model):
- *   - heavy (3×): 5 req/day total across ALL heavy models
- *   - premium (1×): 15 req/day total across ALL premium models
- *   - free (0×): unlimited
+ * CATEGORY-BASED shared quotas (not per-model):
+ *   - multiplier 0 (standard/free): unlimited
+ *     → gemini-3-flash-preview, gpt-5-mini, claude-haiku-4.5, oswe-vscode-prime
+ *   - multiplier 1 (1× premium): shared 10 req/user/day across ALL 1× models
+ *     → gpt-4.1, gpt-4o, claude-sonnet-4/4.5/4.6, gemini-3-pro-preview, grok-code-fast-1
+ *   - multiplier 3 (3× heavy): shared 5 req/user/day across ALL 3× models
+ *     → gpt-5.2, gpt-5.1, gemini-2.5-pro, gemini-3.1-pro-preview, claude-opus-4.5/4.6
  *
- * Category = premium_multiplier value (0, 1, or 3).
- * ai_usage table tracks (user_id, multiplier, usage_date) — one row per category per user per day.
+ * Limits are stored in ai_rate_limits table (admin-editable, no redeploy).
+ * ai_usage tracks (user_id, multiplier, usage_date) — one row per category per day.
  * Admin always bypasses all limits.
- *
- * Real model tiers (from live Copilot API, 2026-03-01):
- *   FREE:    gemini-3-flash-preview, gpt-5-mini, claude-haiku-4.5, oswe-vscode-prime
- *   PREMIUM: gpt-4.1, gpt-4o, claude-sonnet-4, claude-sonnet-4.5, claude-sonnet-4.6,
- *            gemini-3-pro-preview, grok-code-fast-1
- *   HEAVY:   gpt-5.2, gpt-5.1, gemini-2.5-pro, gemini-3.1-pro-preview,
- *            claude-opus-4.5, claude-opus-4.6
  */
 
 import { createClient } from "@supabase/supabase-js";
 
-// Category limits (shared pool per tier per day)
-const CATEGORY_LIMITS: Record<number, number> = {
-  3: 5,   // heavy: 5 total/day
-  1: 15,  // premium: 15 total/day
-  0: 0,   // free: unlimited
+// Hardcoded fallback defaults (used if ai_rate_limits table is unavailable)
+const DEFAULT_LIMITS: Record<number, number> = {
+  0: 0,   // free: unlimited (0 = no limit)
+  1: 10,  // 1× premium: 10/day shared
+  3: 5,   // 3× heavy: 5/day shared
 };
 
-// FREE models — unlimited regardless
-const FREE_MODELS = new Set([
-  "gemini-3-flash-preview",
-  "gemini-2.5-flash-preview-04-17",
-  "gemini-2-0-flash",
-  "gpt-5-mini",
-  "gpt-4.1-mini",
-  "gpt-4.1-nano",
-  "gpt-4o-mini",
-  "claude-haiku-4.5",
-  "claude-3-5-haiku",
-  "oswe-vscode-prime",
-  "llama",
-  "ministral",
-  "phi",
-]);
+// Multiplier lookup per model ID — mirrors ai_models_config.premium_multiplier
+// Used as fast in-memory lookup to avoid a DB round-trip for every request
+const MODEL_MULTIPLIER: Record<string, 0 | 1 | 3> = {
+  // Standard/free (0)
+  "gemini-3-flash-preview":    0,
+  "gpt-5-mini":                0,
+  "claude-haiku-4.5":          0,
+  "oswe-vscode-prime":         0,
 
-// 3× heavy models
-const HEAVY_MODELS = new Set([
-  "gpt-5.2",
-  "gpt-5.1",
-  "claude-opus-4.5",
-  "claude-opus-4.6",
-  "claude-opus-4",
-  "claude-3-opus",
-  "gemini-3.1-pro-preview",
-  "gemini-2.5-pro",
-  "o1",
-  "o3",
-  "o3-mini",
-  "grok-3",
-]);
+  // 1× premium (1)
+  "gpt-4.1":                   1,
+  "gpt-4o":                    1,
+  "claude-sonnet-4":           1,
+  "claude-sonnet-4.5":         1,
+  "claude-sonnet-4.6":         1,
+  "gemini-3-pro-preview":      1,
+  "grok-code-fast-1":          1,
 
-/** Get category multiplier: 0=free, 1=premium, 3=heavy */
-export function getModelMultiplier(modelId: string): 0 | 1 | 3 {
-  if (!modelId) return 1;
-  const id = modelId.toLowerCase();
-  if ([...FREE_MODELS].some(f => id.includes(f.toLowerCase()))) return 0;
-  if ([...HEAVY_MODELS].some(h => id.includes(h.toLowerCase()))) return 3;
-  return 1; // everything else = premium
-}
+  // 3× heavy (3)
+  "gpt-5.2":                   3,
+  "gpt-5.1":                   3,
+  "gemini-2.5-pro":            3,
+  "gemini-3.1-pro-preview":    3,
+  "claude-opus-4.5":           3,
+  "claude-opus-4.6":           3,
+};
 
 function getServiceSupabase() {
   return createClient(
@@ -78,11 +59,35 @@ function getServiceSupabase() {
   );
 }
 
-/**
- * Check if user has quota remaining for a model's category.
- * Returns { allowed, remaining, limit, multiplier }.
- * Admin (isAdmin=true) always bypasses.
- */
+/** Get the premium multiplier for a model ID.
+ *  Returns 0 for free/unknown (fail-open: unknown models are not blocked). */
+export function getModelMultiplier(modelId: string): 0 | 1 | 3 {
+  if (!modelId) return 0;
+  return MODEL_MULTIPLIER[modelId.toLowerCase()] ?? MODEL_MULTIPLIER[modelId] ?? 0;
+}
+
+/** Fetch the category daily limit from ai_rate_limits table.
+ *  Falls back to DEFAULT_LIMITS if DB unavailable. */
+async function getCategoryLimit(multiplier: number): Promise<number> {
+  try {
+    const sb = getServiceSupabase();
+    const { data } = await sb
+      .from("ai_rate_limits")
+      .select("daily_limit")
+      .eq("multiplier", multiplier)
+      .maybeSingle();
+    if (data?.daily_limit !== undefined && data.daily_limit !== null) {
+      return data.daily_limit;
+    }
+  } catch {
+    // fall through to default
+  }
+  return DEFAULT_LIMITS[multiplier] ?? 0;
+}
+
+/** Check if user has category quota remaining for a model.
+ *  Returns { allowed, remaining, limit, multiplier }.
+ *  Admin (isAdmin=true) always allowed. */
 export async function checkAiQuota(
   userId: string,
   modelId: string,
@@ -93,12 +98,15 @@ export async function checkAiQuota(
   // Admin: always allowed
   if (isAdmin) return { allowed: true, remaining: 999, limit: 999, multiplier };
 
-  // Free category: always allowed
+  // Free/standard models: always allowed
   if (multiplier === 0) return { allowed: true, remaining: 999, limit: 0, multiplier: 0 };
 
-  const limit = CATEGORY_LIMITS[multiplier] ?? 15;
+  // Get category limit (from DB or fallback)
+  const limit = await getCategoryLimit(multiplier);
+  if (limit === 0) return { allowed: true, remaining: 999, limit: 0, multiplier };
+
   const sb = getServiceSupabase();
-  const today = new Date().toISOString().split("T")[0];
+  const today = new Date().toISOString().split("T")[0]; // UTC date
 
   const { data, error } = await sb
     .from("ai_usage")
@@ -115,25 +123,21 @@ export async function checkAiQuota(
   return { allowed: remaining > 0, remaining, limit, multiplier };
 }
 
-/**
- * Atomically increment usage for a user's category bucket.
- * Buckets: (user_id, multiplier, usage_date) — one row per tier per day.
- */
+/** Atomically increment the category usage bucket for a user. */
 export async function incrementAiUsage(
   userId: string,
   modelId: string
 ): Promise<void> {
   const multiplier = getModelMultiplier(modelId);
-  if (multiplier === 0) return; // free — skip tracking
+  if (multiplier === 0) return; // free — don't track
 
   try {
     const sb = getServiceSupabase();
     const today = new Date().toISOString().split("T")[0];
-    // Use the original category-based RPC (p_multiplier, not p_model_id)
-    await sb.rpc("increment_ai_usage_v2", {
+    await sb.rpc("increment_ai_usage", {
       p_user_id: userId,
-      p_multiplier: multiplier,
       p_date: today,
+      p_multiplier: multiplier,
     });
   } catch {
     // Non-fatal
