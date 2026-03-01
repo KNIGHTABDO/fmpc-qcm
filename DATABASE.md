@@ -16,6 +16,14 @@
 | `ai_explanations` | varies | Cached AI explanations |
 | `comments` | varies | Per-question comments |
 | `comment_likes` | varies | Comment likes |
+| `bookmarks` | varies | User question bookmarks |
+| `quiz_sessions` | varies | In-progress quiz session state |
+| `study_rooms` | varies | Collaborative study rooms |
+| `room_participants` | varies | Study room participants |
+| `flashcard_progress` | varies | User flashcard session data |
+| `ai_usage` | varies | Per-user AI quota consumption |
+| `ai_models_config` | ~10 | AI model multipliers & config |
+| `copilot_tokens` | varies | GitHub Copilot API token pool |
 
 ## Questions by Semester
 
@@ -27,6 +35,13 @@
 | S7 | ~26,144 |
 | S9 | ~18,962 |
 | **Total** | **~180,650** |
+
+## Key Constraints
+
+- `bookmarks`: unique on `(user_id, question_id)` — upsert safe
+- `quiz_sessions`: unique on `(user_id, activity_id)` — upserted on every answer
+- `study_rooms`: unique on `code` — retry loop handles collisions
+- `ai_usage`: composite key on `(user_id, usage_date, multiplier)`
 
 ## Export Full Database to CSV
 
