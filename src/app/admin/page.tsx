@@ -541,7 +541,13 @@ function AiSection() {
   const [flowData, setFlowData]       = useState<{device_code:string;user_code:string;verification_uri:string;interval:number;expires_at:number}|null>(null);
   const [flowError, setFlowError]     = useState("");
   const pollRef                       = useRef<ReturnType<typeof setTimeout>|null>(null);
-  const [tab, setTab]                 = useState<"tokens"|"models">("tokens");
+  const [tab, setTab]                 = useState<"tokens"|"models"|"limits">("tokens");
+  const [limits, setLimits]           = useState<{multiplier:number;daily_limit:number;label:string}[]>([]);
+  const [usageToday, setUsageToday]   = useState<{multiplier:number;count:number}[]>([]);
+  const [editLimit, setEditLimit]     = useState<Record<number,string>>({});
+  const [savingLimit, setSavingLimit] = useState<number|null>(null);
+  const [editMult, setEditMult]       = useState<Record<string,string>>({});
+  const [savingMult, setSavingMult]   = useState<string|null>(null);
 
   async function authHdr() {
     const { data: { session } } = await supabase.auth.getSession();
@@ -557,8 +563,17 @@ function AiSection() {
     const r = await fetch("/api/admin/ai-models");
     if (r.ok) setModels(await r.json());
   }
+  async function loadLimits() {
+    const h = await authHdr();
+    const r = await fetch("/api/admin/ai-limits", { headers: h });
+    if (r.ok) {
+      const d = await r.json();
+      setLimits(d.limits ?? []);
+      setUsageToday(d.usage_today ?? []);
+    }
+  }
 
-  useEffect(() => { loadTokens(); loadModels(); }, []); // eslint-disable-line
+  useEffect(() => { loadTokens(); loadModels(); loadLimits(); }, []); // eslint-disable-line
 
   async function testToken(id?: string) {
     const h = await authHdr();
@@ -621,6 +636,28 @@ function AiSection() {
     await loadTokens();
   }
 
+  async function saveCategoryLimit(multiplier: number) {
+    const val = parseInt(editLimit[multiplier] ?? "");
+    if (isNaN(val) || val < 0) return;
+    setSavingLimit(multiplier);
+    const h = await authHdr();
+    await fetch("/api/admin/ai-limits", { method: "PATCH", headers: h, body: JSON.stringify({ multiplier, daily_limit: val }) });
+    await loadLimits();
+    setSavingLimit(null);
+    setEditLimit(prev => { const n = {...prev}; delete n[multiplier]; return n; });
+  }
+
+  async function saveModelMult(modelId: string) {
+    const val = parseInt(editMult[modelId] ?? "");
+    if (isNaN(val) || ![0,1,3].includes(val)) return;
+    setSavingMult(modelId);
+    const h = await authHdr();
+    await fetch("/api/admin/ai-models", { method: "PATCH", headers: h, body: JSON.stringify({ id: modelId, premium_multiplier: val }) });
+    await loadModels(); await loadLimits();
+    setSavingMult(null);
+    setEditMult(prev => { const n = {...prev}; delete n[modelId]; return n; });
+  }
+
   async function toggleModel(m: AiModel) {
     const h = await authHdr();
     await fetch("/api/admin/ai-models", { method: "PATCH", headers: h, body: JSON.stringify({ id: m.id, is_enabled: !m.is_enabled }) });
@@ -665,11 +702,11 @@ function AiSection() {
 
       {/* Tabs */}
       <div className="flex border-b" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
-        {(["tokens", "models"] as const).map((t) => (
+        {(["tokens", "models", "limits"] as const).map((t) => (
           <button key={t} onClick={() => setTab(t)}
             className="flex-1 py-3 text-xs font-semibold uppercase tracking-widest transition-all"
             style={{ color: tab === t ? "#818cf8" : "rgba(255,255,255,0.3)", borderBottom: tab === t ? "2px solid #818cf8" : "2px solid transparent" }}>
-            {t === "tokens" ? `🔑 Tokens (${tokens.length})` : `🤖 Models (${models.length} live)`}
+            {t === "tokens" ? `🔑 Tokens (${tokens.length})` : t === "models" ? `🤖 Models (${models.length})` : `⚡ Limits`}
           </button>
         ))}
       </div>
@@ -859,6 +896,155 @@ function AiSection() {
               </div>
             ))}
           </>
+        )}
+
+        {/* ── LIMITS TAB ── */}
+        {tab === "limits" && (
+          <div className="space-y-5">
+
+            {/* ─ Category Quotas ─ */}
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: "rgba(255,255,255,0.25)" }}>
+                Category daily limits (shared across all models in tier)
+              </p>
+              <div className="space-y-2">
+                {[
+                  { mult: 0, label: "🟢 Free / Standard", color: "#22c55e", desc: "0 = unlimited" },
+                  { mult: 1, label: "🟡 1× Premium",       color: "#fbbf24", desc: "shared across all 1× models" },
+                  { mult: 3, label: "🔴 3× Heavy",          color: "#f87171", desc: "shared across all 3× models" },
+                ].map(({ mult, label, color, desc }) => {
+                  const row = limits.find(l => l.multiplier === mult);
+                  const usage = usageToday.find(u => u.multiplier === mult);
+                  const currentLimit = row?.daily_limit ?? (mult === 0 ? 0 : mult === 1 ? 10 : 5);
+                  const used = usage?.count ?? 0;
+                  const pct  = currentLimit > 0 ? Math.min(100, Math.round(used / currentLimit * 100)) : 0;
+                  const isEditing = mult in editLimit;
+                  return (
+                    <div key={mult} className="rounded-xl border px-4 py-3 space-y-2"
+                      style={{ background: "rgba(255,255,255,0.02)", borderColor: `${color}20` }}>
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold" style={{ color: "rgba(255,255,255,0.85)" }}>{label}</p>
+                          <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.3)" }}>{desc}</p>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          {isEditing ? (
+                            <>
+                              <input
+                                type="number" min="0"
+                                value={editLimit[mult]}
+                                onChange={e => setEditLimit(prev => ({ ...prev, [mult]: e.target.value }))}
+                                className="w-16 px-2 py-1 rounded-lg text-xs text-center border outline-none font-mono"
+                                style={{ background: "rgba(255,255,255,0.06)", borderColor: `${color}40`, color: "rgba(255,255,255,0.9)" }}
+                                onKeyDown={e => e.key === "Enter" && saveCategoryLimit(mult)}
+                              />
+                              <button onClick={() => saveCategoryLimit(mult)} disabled={savingLimit === mult}
+                                className="px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all"
+                                style={{ background: `${color}18`, color, border: `1px solid ${color}30` }}>
+                                {savingLimit === mult ? "…" : "Save"}
+                              </button>
+                              <button onClick={() => setEditLimit(prev => { const n = {...prev}; delete n[mult]; return n; })}
+                                className="px-2 py-1 rounded-lg text-[10px]"
+                                style={{ background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.3)" }}>✕</button>
+                            </>
+                          ) : (
+                            <>
+                              <span className="font-mono text-sm font-bold" style={{ color }}>
+                                {currentLimit === 0 ? "∞" : currentLimit + "/day"}
+                              </span>
+                              <button onClick={() => setEditLimit(prev => ({ ...prev, [mult]: String(currentLimit) }))}
+                                className="px-2.5 py-1 rounded-lg text-[10px] font-semibold border transition-all"
+                                style={{ background: "rgba(255,255,255,0.04)", borderColor: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.5)" }}>
+                                Edit
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      {/* Usage bar */}
+                      {mult !== 0 && currentLimit > 0 && (
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-[10px]" style={{ color: "rgba(255,255,255,0.25)" }}>
+                            <span>Today: {used} used</span>
+                            <span>{pct}%</span>
+                          </div>
+                          <div className="h-1 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
+                            <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: color }} />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* ─ Per-model multiplier assignment ─ */}
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: "rgba(255,255,255,0.25)" }}>
+                Per-model tier assignment
+              </p>
+              <div className="space-y-1.5">
+                {models.map((m: any) => {
+                  const mult = m.premium_multiplier ?? 0;
+                  const multColors: Record<number,string> = { 0: "#22c55e", 1: "#fbbf24", 3: "#f87171" };
+                  const multLabels: Record<number,string> = { 0: "Free", 1: "1×", 3: "3×" };
+                  const isEditing = m.id in editMult;
+                  return (
+                    <div key={m.id} className="rounded-lg border px-3 py-2 flex items-center gap-3"
+                      style={{ background: "rgba(255,255,255,0.015)", borderColor: "rgba(255,255,255,0.05)" }}>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium truncate" style={{ color: "rgba(255,255,255,0.75)" }}>{m.label}</p>
+                        <p className="text-[10px] font-mono" style={{ color: "rgba(255,255,255,0.2)" }}>{m.id}</p>
+                      </div>
+                      {isEditing ? (
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          {([0,1,3] as const).map(v => (
+                            <button key={v}
+                              onClick={() => setEditMult(prev => ({ ...prev, [m.id]: String(v) }))}
+                              className="px-2 py-1 rounded-md text-[10px] font-bold transition-all"
+                              style={{
+                                background: editMult[m.id] === String(v) ? `${multColors[v]}20` : "rgba(255,255,255,0.04)",
+                                color: editMult[m.id] === String(v) ? multColors[v] : "rgba(255,255,255,0.3)",
+                                border: `1px solid ${editMult[m.id] === String(v) ? multColors[v]+"40" : "rgba(255,255,255,0.08)"}`,
+                              }}>
+                              {multLabels[v]}
+                            </button>
+                          ))}
+                          <button onClick={() => saveModelMult(m.id)} disabled={savingMult === m.id || !(m.id in editMult)}
+                            className="px-2.5 py-1 rounded-md text-[10px] font-bold transition-all ml-1"
+                            style={{ background: "rgba(99,102,241,0.15)", color: "#818cf8", border: "1px solid rgba(99,102,241,0.25)" }}>
+                            {savingMult === m.id ? "…" : "✓"}
+                          </button>
+                          <button onClick={() => setEditMult(prev => { const n = {...prev}; delete n[m.id]; return n; })}
+                            className="px-1.5 py-1 rounded-md text-[10px]"
+                            style={{ color: "rgba(255,255,255,0.3)" }}>✕</button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md"
+                            style={{ background: `${multColors[mult] ?? "#fff"}14`, color: multColors[mult] ?? "rgba(255,255,255,0.4)" }}>
+                            {multLabels[mult] ?? `${mult}×`}
+                          </span>
+                          <button onClick={() => setEditMult(prev => ({ ...prev, [m.id]: String(mult) }))}
+                            className="px-2 py-1 rounded-md text-[10px] border transition-all"
+                            style={{ background: "rgba(255,255,255,0.03)", borderColor: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.35)" }}>
+                            Edit
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <button onClick={loadLimits}
+              className="w-full py-2 rounded-xl border text-xs flex items-center justify-center gap-2 transition-all hover:opacity-70"
+              style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.3)" }}>
+              <RefreshCw className="w-3 h-3" /> Refresh usage stats
+            </button>
+          </div>
         )}
       </div>
     </motion.div>
