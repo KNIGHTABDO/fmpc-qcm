@@ -139,7 +139,17 @@ export async function getUserStats(userId: string) {
   const correct = data.filter((a) => a.is_correct).length;
   const rate = Math.round((correct / total) * 100);
 
-  const dates = [...new Set(data.map((a) => a.answered_at.split("T")[0]))].sort().reverse();
+  // #15: guard against null answered_at; use UTC date so streak is timezone-consistent
+  const dates = [
+    ...new Set(
+      data
+        .filter((a) => a.answered_at)
+        .map((a) => a.answered_at.split("T")[0])
+    ),
+  ]
+    .sort()
+    .reverse();
+
   let streak = 0;
   for (let i = 0; i < dates.length; i++) {
     const expected = new Date(Date.now() - i * 86400000).toISOString().split("T")[0];
@@ -176,6 +186,8 @@ export async function addComment(params: {
 }
 
 // ── Bookmarks ─────────────────────────────────────────────────────────────────
+// #13: use upsert to avoid the TOCTOU race between the select and insert.
+// On toggle-off, delete by composite key to avoid the id-based race.
 export async function toggleBookmark(userId: string, questionId: string): Promise<boolean> {
   const { data: existing } = await supabase
     .from("bookmarks")
@@ -185,10 +197,20 @@ export async function toggleBookmark(userId: string, questionId: string): Promis
     .maybeSingle();
 
   if (existing) {
-    await supabase.from("bookmarks").delete().eq("id", existing.id);
+    await supabase
+      .from("bookmarks")
+      .delete()
+      .eq("user_id", userId)
+      .eq("question_id", questionId);
     return false;
   } else {
-    await supabase.from("bookmarks").insert({ user_id: userId, question_id: questionId });
+    // upsert prevents duplicate-insert if two taps race
+    await supabase
+      .from("bookmarks")
+      .upsert(
+        { user_id: userId, question_id: questionId },
+        { onConflict: "user_id,question_id", ignoreDuplicates: true }
+      );
     return true;
   }
 }
