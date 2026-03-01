@@ -112,7 +112,7 @@ export default function SettingsPage() {
   const { user, profile, signOut, refreshProfile } = useAuth();
   const router = useRouter();
 
-  const [selectedModel, setSelectedModel] = useState("gpt-4o-mini");
+  const [selectedModel, setSelectedModel] = useState("gpt-5-mini");
   const [models, setModels] = useState<GhModel[]>([]);
   const [loadingModels, setLoadingModels] = useState(true);
   const [modelOpen, setModelOpen] = useState(false);
@@ -128,7 +128,7 @@ export default function SettingsPage() {
   const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
 
   useEffect(() => {
-    const s = (profile?.preferences as Record<string, string> | undefined)?.ai_model ?? "gpt-4.1-mini";
+    const s = (profile?.preferences as Record<string, string> | undefined)?.ai_model ?? "gpt-5-mini";
     setSelectedModel(s);
   }, [profile]);
 
@@ -138,9 +138,18 @@ export default function SettingsPage() {
       .then((data: GhModel[]) => {
         // Admin-curated from ai_models_config — order preserved
         setModels(data);
+        // Stale model guard: if saved preference doesn't exist in live list, reset to default
+        setSelectedModel(prev => {
+          const ids = new Set(data.map((m: GhModel) => m.id));
+          if (!ids.has(prev)) {
+            const def = data.find((m: GhModel) => m.is_default)?.id ?? data[0]?.id ?? "gpt-5-mini";
+            return def;
+          }
+          return prev;
+        });
       })
       .catch(() => setModels([
-        { id: "gpt-4.1-mini", name: "GPT-4.1 Mini", publisher: "OpenAI", tier: "standard", is_default: true },
+        { id: "gpt-5-mini", name: "GPT-5 Mini", publisher: "OpenAI", tier: "standard", is_default: true },
         { id: "gpt-4o", name: "GPT-4o", publisher: "OpenAI", tier: "premium" },
       ] as GhModel[]))
       .finally(() => setLoadingModels(false));

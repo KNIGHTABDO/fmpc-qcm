@@ -37,6 +37,10 @@ function inferTier(id: string): "standard" | "premium" {
 // Falls back to DB rows if Copilot API is unavailable (no token yet, cold start, etc).
 export async function GET(req: NextRequest) {
   const sb = getServiceSupabase();
+  const isAdmin = await (async () => {
+    try { const { verifyAdmin } = await import("@/lib/admin"); return await verifyAdmin(req); }
+    catch { return false; }
+  })();
 
   // Always load DB rows first (seed data + overrides)
   const { data: dbRows } = await sb.from("ai_models_config").select("*").order("sort_order");
@@ -90,7 +94,8 @@ export async function GET(req: NextRequest) {
         source: "live",
       };
     });
-    return NextResponse.json(result.sort((a: any, b: any) => a.sort_order - b.sort_order || a.id.localeCompare(b.id)));
+    const publicResult = isAdmin ? result : result.map(({ premium_multiplier, ...r }: any) => r);
+    return NextResponse.json(publicResult.sort((a: any, b: any) => a.sort_order - b.sort_order || a.id.localeCompare(b.id)));
   }
 
   // Fallback: serve from DB seed (gracefully handles no-token and cold-start)
@@ -108,7 +113,8 @@ export async function GET(req: NextRequest) {
     max_context: null,
     source: "db",
   }));
-  return NextResponse.json(fallback.sort((a: any, b: any) => a.sort_order - b.sort_order || a.id.localeCompare(b.id)));
+  const publicFallback = isAdmin ? fallback : fallback.map(({ premium_multiplier, ...r }: any) => r);
+  return NextResponse.json(publicFallback.sort((a: any, b: any) => a.sort_order - b.sort_order || a.id.localeCompare(b.id)));
 }
 
 // PATCH: upsert per-model override

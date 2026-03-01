@@ -195,6 +195,23 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
         body: JSON.stringify({ prompt, model }),
         signal: controller.signal,
       });
+      // Handle rate-limited or unauthorized responses before streaming
+      if (!res.ok) {
+        try {
+          const errBody = await res.json();
+          if (errBody?.error === "rate_limited") {
+            setAiText(`⚠️ ${errBody.message ?? "Limite journalière atteinte. Réessaie demain."}`);
+          } else if (errBody?.error === "unauthorized") {
+            setAiText("⚠️ Connecte-toi pour utiliser l'explication IA.");
+          } else {
+            setAiText("⚠️ Explication indisponible — réessaie dans un moment.");
+          }
+        } catch {
+          setAiText("⚠️ Explication indisponible — réessaie dans un moment.");
+        }
+        setAiLoading(false);
+        return;
+      }
       const reader = res.body?.getReader();
       const dec = new TextDecoder();
       if (!reader) { setAiLoading(false); return; }
