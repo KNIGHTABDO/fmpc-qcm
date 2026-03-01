@@ -143,7 +143,7 @@ export async function incrementAiUsage(
   modelId: string
 ): Promise<void> {
   const multiplier = getModelMultiplier(modelId);
-  if (multiplier === 0) return; // free — don't track
+  // Always track usage (including free=0) so admin can see real totals
 
   try {
     const sb = getServiceSupabase();

@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 import { getCopilotToken, getCopilotBaseURL } from "@/lib/copilot-token";
 import { checkAiQuota, incrementAiUsage } from "@/lib/ai-rate-limit";
 
-const ADMIN_EMAIL = "aabidaabdessamad@gmail.com";
+const ADMIN_EMAILS = ["aabidaabdessamad@gmail.com", "knight007youtu@gmail.com"];
 
 async function getAuthUser() {
   try {
@@ -201,7 +201,7 @@ export async function POST(req: NextRequest) {
 
   // Server-side auth — ignore any client-provided userId
   const user = await getAuthUser();
-  const isAdmin = user?.email === ADMIN_EMAIL;
+  const isAdmin = !!user?.email && ADMIN_EMAILS.includes(user.email);
 
   // Default: gpt-4.1 (1× premium, no thinking overhead, strong JSON output)
   const modelId = model?.trim() || "gpt-4.1";

@@ -333,7 +333,26 @@ export default function ChatWithAIPage() {
   const [rateLimitMsg, setRateLimitMsg] = useState<string | null>(null);
   const [quotaRemaining, setQuotaRemaining] = useState<{ remaining: number; limit: number; multiplier: number } | null>(null);
 
-  const { messages, input, handleInputChange, handleSubmit, isLoading, error, setMessages, setInput, stop, reload } = useChat({
+  // ── Quota banner state ──
+  type QuotaCategory = { multiplier: number; label: string; color: string; used: number; limit: number; remaining: number | null; unlimited: boolean };
+  const [quotaCategories, setQuotaCategories] = useState<QuotaCategory[]>([]);
+  const [quotaLoaded, setQuotaLoaded] = useState(false);
+
+  // ── Load quota on mount ──
+  const fetchQuota = async () => {
+    try {
+      const res = await fetch("/api/user/quota");
+      if (res.ok) {
+        const data = await res.json();
+        setQuotaCategories(data.categories ?? []);
+        setQuotaLoaded(true);
+      }
+    } catch { /* non-fatal */ }
+  };
+
+  useEffect(() => { fetchQuota(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const { messages, input, handleInputChange, handleSubmit, isLoading, error, setMessages, setInput, stop, reload } = useChat({
     api: "/api/chat",
     body: { model: selectedModel, thinking: thinkingMode },
     onError: (err) => {
@@ -350,6 +369,8 @@ export default function ChatWithAIPage() {
       }
     },
     onFinish: (message, options) => {
+      // Refresh quota after response completes
+      fetchQuota();
       // Read quota headers from the response if present
       try {
         const remaining = options?.response?.headers?.get?.("X-Quota-Remaining");
@@ -668,6 +689,41 @@ export default function ChatWithAIPage() {
       {/* ── Input bar ── */}
       <div className="flex-shrink-0 px-3 pt-2 pb-[4.75rem] lg:pb-4" style={{ background: "#0a0a0a", borderTop: "1px solid rgba(255,255,255,0.04)" }}>
         <div className="max-w-[760px] mx-auto">
+          {/* ── Usage quota bar ── */}
+          {quotaLoaded && quotaCategories.length > 0 && (
+            <div className="flex items-center gap-3 mb-2 px-1">
+              {quotaCategories
+                .filter(cat => !cat.unlimited || cat.used > 0)
+                .map(cat => {
+                  const pct = cat.limit > 0 ? Math.round((cat.used / cat.limit) * 100) : 0;
+                  const isAtLimit = !cat.unlimited && cat.remaining === 0;
+                  return (
+                    <div key={cat.multiplier} className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-0.5">
+                        <span className="text-[9px] font-medium" style={{ color: "rgba(255,255,255,0.35)" }}>
+                          {cat.label}
+                        </span>
+                        <span className="text-[9px] font-semibold" style={{ color: cat.unlimited ? "rgba(255,255,255,0.25)" : isAtLimit ? "#f87171" : cat.color }}>
+                          {cat.unlimited ? "∞" : `${cat.used}/${cat.limit}`}
+                        </span>
+                      </div>
+                      {!cat.unlimited && (
+                        <div className="h-[3px] rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
+                          <div
+                            className="h-full rounded-full transition-all duration-500"
+                            style={{
+                              width: `${Math.min(100, pct)}%`,
+                              background: isAtLimit ? "#f87171" : pct >= 70 ? "#fbbf24" : cat.color,
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+            </div>
+          )}
+
           <form onSubmit={handleSubmitWithSave}>
             <motion.div
               animate={{
