@@ -31,6 +31,10 @@ type AdminUser = {
   quiz_sessions_completed: number;
   chat_messages_count: number;
   last_active: string | null;
+  ai_free_today: number;
+  ai_premium_today: number;
+  ai_heavy_today: number;
+  ai_total_alltime: number;
 };
 
 function fmt(d: string | null, opts?: Intl.DateTimeFormatOptions) {
@@ -170,6 +174,42 @@ function UserDrawer({ user, onClose }: { user: AdminUser; onClose: () => void })
               </div>
             </div>
           )}
+          {/* AI Usage section */}
+          <div className="mt-5 pt-4 border-t" style={{ borderColor: "rgba(255,255,255,0.05)" }}>
+            <p className="text-[10px] font-semibold uppercase tracking-widest mb-3" style={{ color: "rgba(255,255,255,0.25)" }}>Usage IA</p>
+            <div className="grid grid-cols-2 gap-2 mb-3">
+              {[
+                { label: "Gratuit aujourd'hui",  value: user.ai_free_today,    color: "#22c55e" },
+                { label: "Premium aujourd'hui",  value: user.ai_premium_today, color: "#a78bfa" },
+                { label: "Lourd aujourd'hui",    value: user.ai_heavy_today,   color: "#f87171" },
+                { label: "Total all-time",       value: user.ai_total_alltime, color: "rgba(255,255,255,0.5)" },
+              ].map(item => (
+                <div key={item.label} className="rounded-xl p-2.5" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                  <p className="text-sm font-bold tabular-nums" style={{ color: item.color }}>{item.value}</p>
+                  <p className="text-[9px] mt-0.5 leading-tight" style={{ color: "rgba(255,255,255,0.3)" }}>{item.label}</p>
+                </div>
+              ))}
+            </div>
+            {/* Category bars */}
+            {[
+              { label: "Premium (1×)", used: user.ai_premium_today, limit: 10, color: "#a78bfa" },
+              { label: "Lourd (3×)",   used: user.ai_heavy_today,   limit: 5,  color: "#f87171" },
+            ].map(cat => {
+              const pct = Math.min(100, Math.round((cat.used / cat.limit) * 100));
+              return (
+                <div key={cat.label} className="mb-2">
+                  <div className="flex justify-between mb-1">
+                    <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.3)" }}>{cat.label}</span>
+                    <span className="text-[10px] tabular-nums" style={{ color: cat.used >= cat.limit ? "#f87171" : cat.color }}>{cat.used}/{cat.limit}</span>
+                  </div>
+                  <div className="h-1 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
+                    <div className="h-full rounded-full transition-all duration-500"
+                      style={{ width: `${pct}%`, background: cat.used >= cat.limit ? "#f87171" : pct >= 70 ? "#fbbf24" : cat.color }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </motion.div>
     </motion.div>
@@ -211,6 +251,42 @@ export default function UsersPage() {
           <span className="text-sm tabular-nums" style={{ color: "rgba(255,255,255,0.3)" }}>
             {users.length.toLocaleString()} inscrits
           </span>
+          {/* AI Usage section */}
+          <div className="mt-5 pt-4 border-t" style={{ borderColor: "rgba(255,255,255,0.05)" }}>
+            <p className="text-[10px] font-semibold uppercase tracking-widest mb-3" style={{ color: "rgba(255,255,255,0.25)" }}>Usage IA</p>
+            <div className="grid grid-cols-2 gap-2 mb-3">
+              {[
+                { label: "Gratuit aujourd'hui",  value: user.ai_free_today,    color: "#22c55e" },
+                { label: "Premium aujourd'hui",  value: user.ai_premium_today, color: "#a78bfa" },
+                { label: "Lourd aujourd'hui",    value: user.ai_heavy_today,   color: "#f87171" },
+                { label: "Total all-time",       value: user.ai_total_alltime, color: "rgba(255,255,255,0.5)" },
+              ].map(item => (
+                <div key={item.label} className="rounded-xl p-2.5" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                  <p className="text-sm font-bold tabular-nums" style={{ color: item.color }}>{item.value}</p>
+                  <p className="text-[9px] mt-0.5 leading-tight" style={{ color: "rgba(255,255,255,0.3)" }}>{item.label}</p>
+                </div>
+              ))}
+            </div>
+            {/* Category bars */}
+            {[
+              { label: "Premium (1×)", used: user.ai_premium_today, limit: 10, color: "#a78bfa" },
+              { label: "Lourd (3×)",   used: user.ai_heavy_today,   limit: 5,  color: "#f87171" },
+            ].map(cat => {
+              const pct = Math.min(100, Math.round((cat.used / cat.limit) * 100));
+              return (
+                <div key={cat.label} className="mb-2">
+                  <div className="flex justify-between mb-1">
+                    <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.3)" }}>{cat.label}</span>
+                    <span className="text-[10px] tabular-nums" style={{ color: cat.used >= cat.limit ? "#f87171" : cat.color }}>{cat.used}/{cat.limit}</span>
+                  </div>
+                  <div className="h-1 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
+                    <div className="h-full rounded-full transition-all duration-500"
+                      style={{ width: `${pct}%`, background: cat.used >= cat.limit ? "#f87171" : pct >= 70 ? "#fbbf24" : cat.color }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </motion.div>
 

@@ -144,8 +144,8 @@ export async function POST(req: NextRequest) {
 
     // ── User auth ──
     const { data: { user } } = await supabase.auth.getUser();
-    const ADMIN_EMAILS = ["aabidaabdessamad@gmail.com", "knight007youtu@gmail.com"];
-    const isAdmin = !!user?.email && ADMIN_EMAILS.includes(user.email);
+    const ADMIN_EMAIL = "aabidaabdessamad@gmail.com";
+    const isAdmin = user?.email === ADMIN_EMAIL;
 
     // Resolve model: requested → validate (not a codex-only) → default
     let modelId = requestedModel;
