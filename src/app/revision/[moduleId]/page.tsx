@@ -120,10 +120,18 @@ export default function RevisionModulePage({ params }: { params: Promise<{ modul
     if (!forceNew && aiCached) { setAiText(aiCached); setAiParsed(parseAI(aiCached)); return; }
     setAiLoading(true); setAiText(""); setAiParsed(null);
 
-    const rawModel = typeof localStorage !== "undefined" ? localStorage.getItem("fmpc-ai-model") : null;
-    const model = rawModel && VALID_GH_MODELS.has(rawModel) ? rawModel : "gpt-4o-mini";
-    if (typeof localStorage !== "undefined" && rawModel && !VALID_GH_MODELS.has(rawModel)) {
-      localStorage.setItem("fmpc-ai-model", "gpt-4o-mini");
+    // #66: Read model from Supabase profile (same source as settings/quiz pages)
+    let model = "gpt-4o-mini";
+    if (user) {
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("preferences")
+        .eq("id", user.id)
+        .maybeSingle();
+      const savedModel = (profileData?.preferences as Record<string, string> | null)?.ai_model;
+      if (savedModel && VALID_GH_MODELS.has(savedModel)) {
+        model = savedModel;
+      }
     }
 
     const opts = q.choices.map((c, i) =>
