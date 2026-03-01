@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import Link from "next/link";
 import { Trophy, Flame, CheckCircle, Loader2, Medal, Calendar, BookOpen, TrendingUp } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -180,9 +181,11 @@ export default function LeaderboardPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <p className="text-sm font-semibold truncate" style={{ color: "var(--text)" }}>
+                        <Link href={`/profil?id=${e.user_id}`}
+                          className="text-sm font-semibold truncate hover:underline decoration-dotted"
+                          style={{ color: "var(--text)" }}>
                           {e.display_name}
-                        </p>
+                        </Link>
                         {isMe && <span className="text-[10px] font-normal flex-shrink-0" style={{ color: "var(--text-muted)" }}>· vous</span>}
                       </div>
                       {/* Faculty + year + last active */}
