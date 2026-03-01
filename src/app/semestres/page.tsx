@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { BookOpen, ChevronRight, Lock } from "lucide-react";
@@ -25,11 +26,25 @@ type SemRow = {
   total_questions: number;
 };
 
-export default function SemestresPage() {
+function SemestresPageInner() {
   const { user } = useAuth();
   const [semesters, setSemesters] = useState<SemRow[]>([]);
   const [userSNum, setUserSNum] = useState<number | null>(null);
-  const [selectedFilter, setSelectedFilter] = useState<number | null>(null);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const [selectedFilter, setSelectedFilter] = useState<number | null>(() => {
+    const s = searchParams.get("s");
+    return s ? parseInt(s) : null;
+  });
+
+  // Sync filter to URL params
+  function applyFilter(val: number | null) {
+    setSelectedFilter(val);
+    const params = new URLSearchParams(searchParams.toString());
+    if (val !== null) params.set("s", String(val));
+    else params.delete("s");
+    router.replace(`/semestres?${params.toString()}`, { scroll: false });
+  }
   const [loading, setLoading] = useState(true);
 
   // Load user profile to get their semester
@@ -76,7 +91,7 @@ export default function SemestresPage() {
         {!loading && availableSNums.length > 1 && (
           <div className="flex gap-2 flex-wrap">
             <button
-              onClick={() => setSelectedFilter(null)}
+              onClick={() => applyFilter(null)}
               className="px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all"
               style={{
                 background: !selectedFilter ? "var(--surface-active)" : "var(--surface)",
@@ -91,7 +106,7 @@ export default function SemestresPage() {
               return (
                 <button
                   key={n}
-                  onClick={() => setSelectedFilter(n)}
+                  onClick={() => applyFilter(n)}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all"
                   style={{
                     background: isActive ? "var(--accent-subtle)" : "var(--surface)",
@@ -158,5 +173,14 @@ export default function SemestresPage() {
         )}
       </div>
     </main>
+  );
+}
+
+import { Suspense } from "react";
+export default function SemestresPage() {
+  return (
+    <Suspense fallback={null}>
+      <SemestresPageInner />
+    </Suspense>
   );
 }
