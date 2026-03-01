@@ -1,5 +1,6 @@
 "use client";
 import { use, useEffect, useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { ClipboardList, Dumbbell, ArrowLeft, Clock, Search, Target } from "lucide-react";
 import Link from "next/link";
@@ -13,14 +14,26 @@ interface Activity {
   id: number; nom: string; type_activite: "exam" | "exercise"; total_questions: number; chapitre?: string;
 }
 
-export default function ModulePage({ params }: { params: Promise<{ id: string }> }) {
+function ModulePageInner({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
   const { user } = useAuth();
   const moduleId = parseInt(id);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [moduleName, setModuleName] = useState("");
-  const [tab, setTab] = useState<"exercise" | "exam">("exercise");
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const [tab, setTab] = useState<"exercise" | "exam">(() => {
+    const t = searchParams.get("tab");
+    return t === "exam" ? "exam" : "exercise";
+  });
+
+  function switchTab(t: "exercise" | "exam") {
+    setTab(t);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", t);
+    router.replace(`/modules/${id}?${params.toString()}`, { scroll: false });
+  }
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [weakCount, setWeakCount] = useState<number | null>(null);
@@ -156,5 +169,14 @@ export default function ModulePage({ params }: { params: Promise<{ id: string }>
         )}
       </div>
     </main>
+  );
+}
+
+import { Suspense } from "react";
+export default function ModulePage({ params }: { params: Promise<{ id: string }> }) {
+  return (
+    <Suspense fallback={null}>
+      <ModulePageInner params={params} />
+    </Suspense>
   );
 }
