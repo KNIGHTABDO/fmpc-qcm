@@ -530,6 +530,283 @@ const PROVIDER_COLORS: Record<string, string> = {
   OpenAI: "#74aa9c", Anthropic: "#d4a27f", Meta: "#4267B2", Mistral: "#ff7000"
 };
 
+
+// ── Users Section ─────────────────────────────────────────────────────────────
+interface AdminUser {
+  id: string;
+  username: string | null;
+  full_name: string | null;
+  email: string | null;
+  faculty: string | null;
+  annee_etude: number | null;
+  created_at: string;
+  activation: { status: string; requested_at: string; approved_at: string | null } | null;
+  ai_usage: {
+    today: { multiplier: number; count: number }[];
+    total_requests: number;
+  };
+}
+
+function UsersSection() {
+  const [users, setUsers]       = useState<AdminUser[]>([]);
+  const [total, setTotal]       = useState(0);
+  const [loading, setLoading]   = useState(false);
+  const [search, setSearch]     = useState("");
+  const [status, setStatus]     = useState("all");
+  const [offset, setOffset]     = useState(0);
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const LIMIT = 20;
+
+  const SEM_LABEL: Record<number, string> = { 1:"S1", 2:"S3", 3:"S5", 4:"S7", 5:"S9", 6:"S2", 7:"S4", 8:"S6", 9:"S8", 10:"S10" };
+
+  const load = async (s = search, st = status, off = offset) => {
+    setLoading(true);
+    const headers = await authHeader();
+    const params = new URLSearchParams({ search: s, status: st, limit: String(LIMIT), offset: String(off) });
+    const res = await fetch(`/api/admin/users?${params}`, { headers });
+    if (res.ok) {
+      const d = await res.json();
+      setUsers(d.users ?? []);
+      setTotal(d.total ?? 0);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleSearch = (v: string) => { setSearch(v); setOffset(0); load(v, status, 0); };
+  const handleStatus = (v: string) => { setStatus(v); setOffset(0); load(search, v, 0); };
+  const handlePage   = (dir: 1 | -1) => { const o = offset + dir * LIMIT; setOffset(o); load(search, status, o); };
+
+  async function handleActivate(userId: string, action: "approve" | "deny" | "revoke") {
+    setActionLoading(userId + action);
+    const headers = { ...(await authHeader()), "Content-Type": "application/json" };
+    await fetch("/api/admin/activate", { method: "POST", headers, body: JSON.stringify({ userId, action }) });
+    await load();
+    setActionLoading(null);
+  }
+
+  const todayUsage = (u: AdminUser) => {
+    const cats = [
+      { mult: 0, label: "Gratuit", color: "#22c55e" },
+      { mult: 1, label: "Premium", color: "#a78bfa" },
+      { mult: 3, label: "Lourd", color: "#f87171" },
+    ];
+    return cats.flatMap(cat => {
+      const row = u.ai_usage.today.find(r => r.multiplier === cat.mult);
+      return row ? [{ ...cat, count: row.count }] : [];
+    });
+  };
+
+  const statusColor = (s: string | null) => {
+    if (!s) return "rgba(255,255,255,0.2)";
+    if (s === "approved") return "#22c55e";
+    if (s === "pending") return "#fbbf24";
+    if (s === "denied") return "#ef4444";
+    return "rgba(255,255,255,0.2)";
+  };
+  const statusLabel = (s: string | null) => {
+    if (!s) return "Aucune";
+    if (s === "approved") return "Approuvé";
+    if (s === "pending") return "En attente";
+    if (s === "denied") return "Refusé";
+    return s;
+  };
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
+      className="rounded-2xl border overflow-hidden mb-6"
+      style={{ background: "#0e0e0e", borderColor: "rgba(255,255,255,0.07)" }}>
+
+      {/* Header */}
+      <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
+        <div className="flex items-center gap-2">
+          <Users className="w-4 h-4" style={{ color: "#60a5fa" }} />
+          <span className="text-sm font-semibold" style={{ color: "rgba(255,255,255,0.85)" }}>Utilisateurs</span>
+          <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "rgba(96,165,250,0.12)", color: "#60a5fa" }}>{total}</span>
+        </div>
+        <button onClick={() => load()} className="p-1.5 rounded-lg transition-opacity hover:opacity-70"
+          style={{ color: "rgba(255,255,255,0.3)" }}>
+          <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
+        </button>
+      </div>
+
+      {/* Filters */}
+      <div className="flex gap-2 px-5 py-3 border-b" style={{ borderColor: "rgba(255,255,255,0.05)" }}>
+        <input
+          value={search} onChange={e => handleSearch(e.target.value)}
+          placeholder="Nom, email..."
+          className="flex-1 text-xs rounded-lg px-3 py-2 outline-none"
+          style={{ background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.8)", border: "1px solid rgba(255,255,255,0.07)" }}
+        />
+        <select value={status} onChange={e => handleStatus(e.target.value)}
+          className="text-xs rounded-lg px-2 py-2 outline-none cursor-pointer"
+          style={{ background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.7)", border: "1px solid rgba(255,255,255,0.07)" }}>
+          <option value="all">Tous</option>
+          <option value="approved">Approuvés</option>
+          <option value="pending">En attente</option>
+          <option value="denied">Refusés</option>
+          <option value="none">Sans clé</option>
+        </select>
+      </div>
+
+      {/* User list */}
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="w-5 h-5 rounded-full border-2 border-white/10 border-t-white/40 animate-spin" />
+        </div>
+      ) : users.length === 0 ? (
+        <div className="py-12 text-center text-sm" style={{ color: "rgba(255,255,255,0.3)" }}>Aucun utilisateur</div>
+      ) : (
+        <div className="divide-y" style={{ borderColor: "rgba(255,255,255,0.04)" }}>
+          {users.map(u => {
+            const name = u.full_name || u.username || u.id.slice(0, 8);
+            const sem = u.annee_etude ? SEM_LABEL[u.annee_etude] ?? `A${u.annee_etude}` : "—";
+            const todayRows = todayUsage(u);
+            const isExpanded = expanded === u.id;
+            return (
+              <div key={u.id} className="px-5 py-3">
+                {/* Main row */}
+                <button
+                  className="w-full flex items-center gap-3 text-left"
+                  onClick={() => setExpanded(isExpanded ? null : u.id)}
+                >
+                  {/* Avatar circle */}
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                    style={{ background: "rgba(96,165,250,0.12)", color: "#60a5fa" }}>
+                    {name.charAt(0).toUpperCase()}
+                  </div>
+
+                  {/* Name + email */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate" style={{ color: "rgba(255,255,255,0.85)" }}>{name}</p>
+                    <p className="text-[11px] truncate" style={{ color: "rgba(255,255,255,0.35)" }}>{u.email ?? "—"}</p>
+                  </div>
+
+                  {/* Faculty + sem */}
+                  <div className="hidden sm:flex flex-col items-end gap-0.5 flex-shrink-0">
+                    <span className="text-[11px]" style={{ color: "rgba(255,255,255,0.4)" }}>{u.faculty ?? "—"}</span>
+                    <span className="text-[11px]" style={{ color: "rgba(255,255,255,0.3)" }}>{sem}</span>
+                  </div>
+
+                  {/* Activation badge */}
+                  <span className="text-[10px] px-2 py-0.5 rounded-full flex-shrink-0"
+                    style={{ background: `${statusColor(u.activation?.status ?? null)}18`, color: statusColor(u.activation?.status ?? null), border: `1px solid ${statusColor(u.activation?.status ?? null)}30` }}>
+                    {statusLabel(u.activation?.status ?? null)}
+                  </span>
+
+                  {/* AI usage today — compact */}
+                  {todayRows.length > 0 && (
+                    <div className="hidden sm:flex items-center gap-1 flex-shrink-0">
+                      {todayRows.map(r => (
+                        <span key={r.mult} className="text-[10px] px-1.5 py-0.5 rounded"
+                          style={{ background: `${r.color}15`, color: r.color }}>
+                          {r.count}×{r.mult === 0 ? "F" : r.mult === 1 ? "P" : "H"}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  <ChevronRight className="w-3.5 h-3.5 flex-shrink-0 transition-transform"
+                    style={{ color: "rgba(255,255,255,0.2)", transform: isExpanded ? "rotate(90deg)" : "" }} />
+                </button>
+
+                {/* Expanded detail */}
+                <AnimatePresence>
+                  {isExpanded && (
+                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }}
+                      className="overflow-hidden">
+                      <div className="mt-3 space-y-3 pl-11">
+
+                        {/* AI Usage detail */}
+                        <div className="rounded-xl p-3" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                          <p className="text-[11px] font-medium mb-2" style={{ color: "rgba(255,255,255,0.5)" }}>Usage IA</p>
+                          <div className="flex gap-4 flex-wrap">
+                            {[
+                              { mult: 0, label: "🟢 Gratuit", color: "#22c55e" },
+                              { mult: 1, label: "🟡 Premium", color: "#a78bfa" },
+                              { mult: 3, label: "🔴 Lourd",   color: "#f87171" },
+                            ].map(cat => {
+                              const row = u.ai_usage.today.find(r => r.multiplier === cat.mult);
+                              return (
+                                <div key={cat.mult} className="text-center">
+                                  <p className="text-[10px] mb-0.5" style={{ color: "rgba(255,255,255,0.4)" }}>{cat.label}</p>
+                                  <p className="text-base font-bold" style={{ color: row ? cat.color : "rgba(255,255,255,0.15)" }}>
+                                    {row?.count ?? 0}
+                                  </p>
+                                  <p className="text-[9px]" style={{ color: "rgba(255,255,255,0.25)" }}>aujourd&apos;hui</p>
+                                </div>
+                              );
+                            })}
+                            <div className="text-center">
+                              <p className="text-[10px] mb-0.5" style={{ color: "rgba(255,255,255,0.4)" }}>📊 Total</p>
+                              <p className="text-base font-bold" style={{ color: u.ai_usage.total_requests > 0 ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.15)" }}>
+                                {u.ai_usage.total_requests}
+                              </p>
+                              <p className="text-[9px]" style={{ color: "rgba(255,255,255,0.25)" }}>all time</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex gap-2 flex-wrap">
+                          {(!u.activation || u.activation.status === "pending" || u.activation.status === "denied") && (
+                            <button onClick={() => handleActivate(u.id, "approve")}
+                              disabled={!!actionLoading}
+                              className="text-xs px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80 disabled:opacity-40"
+                              style={{ background: "rgba(34,197,94,0.12)", color: "#22c55e", border: "1px solid rgba(34,197,94,0.2)" }}>
+                              {actionLoading === u.id + "approve" ? "..." : "✓ Approuver"}
+                            </button>
+                          )}
+                          {u.activation?.status === "approved" && (
+                            <button onClick={() => handleActivate(u.id, "revoke")}
+                              disabled={!!actionLoading}
+                              className="text-xs px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80 disabled:opacity-40"
+                              style={{ background: "rgba(251,191,36,0.1)", color: "#fbbf24", border: "1px solid rgba(251,191,36,0.2)" }}>
+                              {actionLoading === u.id + "revoke" ? "..." : "↩ Révoquer"}
+                            </button>
+                          )}
+                          {(!u.activation || u.activation.status === "pending") && (
+                            <button onClick={() => handleActivate(u.id, "deny")}
+                              disabled={!!actionLoading}
+                              className="text-xs px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80 disabled:opacity-40"
+                              style={{ background: "rgba(239,68,68,0.1)", color: "#f87171", border: "1px solid rgba(239,68,68,0.2)" }}>
+                              {actionLoading === u.id + "deny" ? "..." : "✗ Refuser"}
+                            </button>
+                          )}
+                          <span className="text-[10px] self-center ml-2" style={{ color: "rgba(255,255,255,0.25)" }}>
+                            Inscrit le {new Date(u.created_at).toLocaleDateString("fr-FR")}
+                          </span>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Pagination */}
+      {total > LIMIT && (
+        <div className="flex items-center justify-between px-5 py-3 border-t" style={{ borderColor: "rgba(255,255,255,0.05)" }}>
+          <button onClick={() => handlePage(-1)} disabled={offset === 0}
+            className="text-xs px-3 py-1.5 rounded-lg disabled:opacity-30 transition-opacity hover:opacity-70"
+            style={{ background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.5)" }}>← Précédent</button>
+          <span className="text-[11px]" style={{ color: "rgba(255,255,255,0.3)" }}>
+            {offset + 1}–{Math.min(offset + LIMIT, total)} / {total}
+          </span>
+          <button onClick={() => handlePage(1)} disabled={offset + LIMIT >= total}
+            className="text-xs px-3 py-1.5 rounded-lg disabled:opacity-30 transition-opacity hover:opacity-70"
+            style={{ background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.5)" }}>Suivant →</button>
+        </div>
+      )}
+    </motion.div>
+  );
+}
 function AiSection() {
   const [tokens, setTokens]           = useState<AiToken[]>([]);
   const [models, setModels]           = useState<AiModel[]>([]);
@@ -1110,6 +1387,9 @@ export default function AdminPage() {
         <StatCard label="Questions"     value={s?.platform.questions ?? 0} icon={BookOpen}  color="#a78bfa" sub="dans la base" />
         <StatCard label="Réponses"      value={s?.platform.answers   ?? 0} icon={Activity}  color="#34d399" sub="soumises" />
       </div>
+
+      {/* Users section */}
+      <UsersSection />
 
       {/* AI Regen section */}
       <RegenSection />

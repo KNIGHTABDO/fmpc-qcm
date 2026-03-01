@@ -162,16 +162,27 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
 
     if (!forceNew && aiCached) { setAiText(aiCached); setAiParsed(parseAI(aiCached)); return; }
     setAiLoading(true); setAiText(""); setAiParsed(null);
-    const VALID_GH_MODELS = new Set([
-      "gpt-4o", "gpt-4o-mini", "o1", "o1-mini", "o3", "o3-mini", "o4-mini",
-      "Meta-Llama-3.3-70B-Instruct", "Meta-Llama-3.1-405B-Instruct",
-      "Mistral-Large-2", "Phi-4", "Phi-4-mini", "Cohere-Command-R-Plus-08-2024",
-      "DeepSeek-R1", "DeepSeek-V3",
-    ]);
-    const rawModel = typeof localStorage !== "undefined" ? localStorage.getItem("fmpc-ai-model") : null;
-    const model = rawModel && VALID_GH_MODELS.has(rawModel) ? rawModel : "gpt-4o-mini";
-    if (typeof localStorage !== "undefined" && rawModel && !VALID_GH_MODELS.has(rawModel)) {
-      localStorage.setItem("fmpc-ai-model", "gpt-4o-mini");
+    // Read model from Supabase profile preferences (same source as settings page)
+    // Falls back to gpt-5-mini if profile has no preference or model is unavailable
+    let model = "gpt-5-mini";
+    if (user) {
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("preferences")
+        .eq("id", user.id)
+        .maybeSingle();
+      const savedModel = (profileData?.preferences as Record<string, string> | null)?.ai_model;
+      if (savedModel) {
+        // Verify it's still a live model
+        try {
+          const ghRes = await fetch("/api/gh-models");
+          if (ghRes.ok) {
+            const liveModels: { id: string }[] = await ghRes.json();
+            const liveIds = new Set(liveModels.map(m => m.id));
+            model = liveIds.has(savedModel) ? savedModel : liveModels[0]?.id ?? "gpt-5-mini";
+          }
+        } catch { /* keep default */ }
+      }
     }
     const opts = q.choices.map((c, i) =>
       String.fromCharCode(65 + i) + ") " + c.contenu + " [" + (c.est_correct ? "CORRECTE" : "INCORRECTE") + "]"
@@ -600,6 +611,17 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
           <QuizImage src={q.image_url} />
         </div>
 
+        {/* Multi-answer hint */}
+        {(() => {
+          const numCorrect = q.choices.filter(c => c.est_correct).length;
+          return numCorrect > 1 ? (
+            <div className="mb-2 flex items-center gap-1.5 text-[11px] font-medium px-1"
+              style={{ color: "rgba(251,191,36,0.8)" }}>
+              <span>⚡</span>
+              <span>Sélectionne {numCorrect} bonnes réponses</span>
+            </div>
+          ) : null;
+        })()}
         <div className="space-y-2">
           {q.choices.map((choice, idx) => {
             const isSel = selected.has(choice.id);

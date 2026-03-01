@@ -59,6 +59,30 @@ export async function GET(req: NextRequest) {
   const emailMap = Object.fromEntries((authUsers ?? []).map((u) => [u.id, u.email]));
   const keyMap   = Object.fromEntries((keys ?? []).map((k) => [k.user_id, k]));
 
+  // Fetch today's AI usage for these users
+  const today = new Date().toISOString().split("T")[0];
+  const { data: usageRows } = await db
+    .from("ai_usage")
+    .select("user_id, multiplier, count")
+    .in("user_id", ids)
+    .eq("usage_date", today);
+
+  // Fetch total AI usage (all time) per user
+  const { data: totalUsageRows } = await db
+    .from("ai_usage")
+    .select("user_id, multiplier, count")
+    .in("user_id", ids);
+
+  const aiUsageMap: Record<string, { today: { multiplier: number; count: number }[]; total_requests: number }> = {};
+  for (const row of (totalUsageRows ?? [])) {
+    if (!aiUsageMap[row.user_id]) aiUsageMap[row.user_id] = { today: [], total_requests: 0 };
+    aiUsageMap[row.user_id].total_requests += row.count;
+  }
+  for (const row of (usageRows ?? [])) {
+    if (!aiUsageMap[row.user_id]) aiUsageMap[row.user_id] = { today: [], total_requests: 0 };
+    aiUsageMap[row.user_id].today.push({ multiplier: row.multiplier, count: row.count });
+  }
+
   let results = profiles.map((p) => ({
     id:         p.id,
     username:   p.username,
@@ -68,6 +92,7 @@ export async function GET(req: NextRequest) {
     annee_etude:p.annee_etude,
     created_at: p.created_at,
     activation: keyMap[p.id] ?? null,
+    ai_usage:   aiUsageMap[p.id] ?? { today: [], total_requests: 0 },
   }));
 
   if (status !== "all") {
