@@ -288,7 +288,7 @@ export default function LandingPage() {
             </motion.p>
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.32 }}
               className="flex flex-col sm:flex-row gap-2.5 justify-center">
-              <Link href="/semestres"
+              <Link href="/auth"
                 className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm bg-white text-black hover:bg-zinc-100 transition-all">
                 Commencer <ArrowRight className="w-3.5 h-3.5" />
               </Link>
