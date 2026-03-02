@@ -1,26 +1,6 @@
 // @ts-nocheck
 import { NextRequest } from "next/server";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
 import { getCopilotToken, getCopilotBaseURL } from "@/lib/copilot-token";
-import { checkAiQuota, incrementAiUsage } from "@/lib/ai-rate-limit";
-
-const ADMIN_EMAIL = "aabidaabdessamad@gmail.com";
-
-async function getAuthUser() {
-  try {
-    const cookieStore = await cookies();
-    const sb = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      { cookies: { getAll: () => cookieStore.getAll(), setAll: () => {} } }
-    );
-    const { data: { user } } = await sb.auth.getUser();
-    return user;
-  } catch {
-    return null;
-  }
-}
 
 export const maxDuration = 90;
 
@@ -60,26 +40,12 @@ Option anatomie (incorrecte) :
 ## DOMAINES MÉDICAUX COUVERTS
 Anatomie · Histologie · Embryologie · Physiologie · Biochimie · Séméiologie · Pharmacologie · Pathologie · Microbiologie · Immunologie · Hématologie · Cardiologie · Pneumologie · Neurologie · Gastro-entérologie · Néphrologie · Endocrinologie · Gynéco-obstétrique · Pédiatrie · Chirurgie · Radiologie · Médecine légale · Santé publique`.trim();
 
-// ── Thinking model detection ─────────────────────────────────────────────────
-// Explanations are structured JSON — deep reasoning (thinking) adds latency and
-// token cost without meaningfully improving short per-option medical explanations.
-// Thinking is DISABLED for explain by default. Only activate for specific models
-// when Claude Opus is explicitly selected.
-function getThinkingOptions(modelId: string): Record<string, unknown> | null {
-  // Only enable thinking for Opus-class models — they are explicitly chosen for hard cases
-  if (modelId.includes("claude-opus")) {
-    return { thinking: { type: "enabled", budget_tokens: 4000 } };
-  }
-  // GPT-5.1 reasoning effort (if explicitly selected)
-  if (modelId === "gpt-5.1") {
-    return { reasoning_effort: "low" }; // low = cheaper, still structured
-  }
-  // All others (including Claude Sonnet, gpt-4.1, Gemini): no thinking
-  return null;
-}
+// ── Hardcoded model — no user preference, no DB lookup, no quota ─────────────
+// Quiz explanations are always free and always use this model.
+const EXPLAIN_MODEL = "gemini-3-flash-preview";
 
 // ── Streaming via Copilot internal API ───────────────────────────────────────
-async function streamCopilotExplain(modelId: string, prompt: string): Promise<ReadableStream> {
+async function streamCopilotExplain(prompt: string): Promise<ReadableStream> {
   const enc = new TextEncoder();
 
   const errorStream = (msg: string) =>
@@ -93,31 +59,25 @@ async function streamCopilotExplain(modelId: string, prompt: string): Promise<Re
     copilotToken = await getCopilotToken();
     baseURL = getCopilotBaseURL(copilotToken);
   } catch (err) {
-    return errorStream("[]");
+    console.error("[ai-explain] token error:", err);
+    return errorStream("TOKEN_ERROR");
   }
 
-  const thinkingOpts = getThinkingOptions(modelId);
-  const isThinking = !!thinkingOpts;
-
-  const body: Record<string, unknown> = {
-    model: modelId,
+  const body = {
+    model: EXPLAIN_MODEL,
     stream: true,
     messages: [
       { role: "system", content: SYSTEM_PROMPT },
       { role: "user", content: prompt },
     ],
-    max_tokens: isThinking ? 4000 : 1200,  // JSON array explanations fit in 1200 tokens
-    temperature: isThinking ? 1 : 0.15,
-    top_p: isThinking ? undefined : 0.95,
-    ...thinkingOpts,
+    max_tokens: 1200,
+    temperature: 0.15,
+    top_p: 0.95,
   };
-
-  // Clean undefined fields
-  Object.keys(body).forEach(k => body[k] === undefined && delete body[k]);
 
   let res: Response;
   try {
-    res = await fetch(`${baseURL}/chat/completions`, { // No /v1 — Copilot API uses root path
+    res = await fetch(`${baseURL}/chat/completions`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -129,28 +89,28 @@ async function streamCopilotExplain(modelId: string, prompt: string): Promise<Re
       body: JSON.stringify(body),
     });
   } catch (err) {
-    return errorStream("[]");
+    console.error("[ai-explain] fetch error:", err);
+    return errorStream("NETWORK_ERROR");
   }
 
   if (!res.ok) {
     const errText = await res.text();
-    console.error("[ai-explain] Copilot error", res.status, errText.slice(0, 200));
-    return errorStream("[]");
+    console.error("[ai-explain] Copilot HTTP error", res.status, errText.slice(0, 300));
+    return errorStream(`HTTP_${res.status}`);
   }
 
   const ct = res.headers.get("content-type") ?? "";
   if (ct.includes("application/json")) {
-    // Non-streaming error response
     const body2 = await res.text();
-    console.error("[ai-explain] JSON error body:", body2.slice(0, 200));
-    return errorStream("[]");
+    console.error("[ai-explain] JSON error body:", body2.slice(0, 300));
+    return errorStream("JSON_ERROR_BODY");
   }
 
   // Stream SSE → extract content tokens only (skip thinking blocks)
   return new ReadableStream({
     async start(ctrl) {
       const reader = res.body?.getReader();
-      if (!reader) { ctrl.enqueue(enc.encode("[]")); ctrl.close(); return; }
+      if (!reader) { ctrl.enqueue(enc.encode("NO_READER")); ctrl.close(); return; }
       const dec = new TextDecoder();
       let buf = "";
       let hasContent = false;
@@ -168,72 +128,39 @@ async function streamCopilotExplain(modelId: string, prompt: string): Promise<Re
             const d = JSON.parse(line.slice(6));
             const delta = d?.choices?.[0]?.delta;
             if (!delta) continue;
-
-            // Skip thinking content blocks (Claude extended thinking)
-            if (delta.type === "thinking" || delta.thinking) {
-              inThinkingBlock = true;
-              continue;
-            }
-            if (delta.type === "text" || delta.type === undefined) {
-              inThinkingBlock = false;
-            }
+            if (delta.type === "thinking" || delta.thinking) { inThinkingBlock = true; continue; }
+            if (delta.type === "text" || delta.type === undefined) inThinkingBlock = false;
             if (inThinkingBlock) continue;
-
             const t = delta.content;
             if (t) { ctrl.enqueue(enc.encode(t)); hasContent = true; }
           } catch { /* skip malformed SSE */ }
         }
       }
 
-      if (!hasContent) ctrl.enqueue(enc.encode("[]"));
+      if (!hasContent) ctrl.enqueue(enc.encode("EMPTY_STREAM"));
       ctrl.close();
     },
   });
 }
 
 // ── Route handler ─────────────────────────────────────────────────────────────
+// NO auth check. NO quota check. NO incrementAiUsage.
+// Quiz explanations are unlimited for all users.
 export async function POST(req: NextRequest) {
-  const { prompt, model } = (await req.json()) as {
-    prompt: string;
-    model?: string;
-  };
-  const headers = { "Content-Type": "text/plain; charset=utf-8" };
+  const { prompt } = (await req.json()) as { prompt: string };
 
-  // Server-side auth — ignore any client-provided userId
-  const user = await getAuthUser();
-  const isAdmin = user?.email === ADMIN_EMAIL;
-
-  // Default: gpt-4.1 (1× premium, no thinking overhead, strong JSON output)
-  const modelId = model?.trim() || "gpt-4.1";
-
-  // ── Rate limit check ──
-  if (user) {
-    try {
-      const quota = await checkAiQuota(user.id, modelId, isAdmin);
-      if (!quota.allowed) {
-        return new Response(
-          JSON.stringify({
-            error: "rate_limited",
-            message: `Limite journalière atteinte (${quota.limit}/jour). Réessaie demain ou utilise un modèle gratuit.`,
-          }),
-          { status: 429, headers: { "Content-Type": "application/json" } }
-        );
-      }
-    } catch (e) {
-      // Fail-open: quota check failure should not block explanations
-      console.error("[ai-explain] quota check error (non-fatal):", e);
-    }
+  if (!prompt || typeof prompt !== "string" || prompt.trim().length < 10) {
+    return new Response(
+      JSON.stringify({ error: "invalid_prompt", message: "Prompt manquant ou trop court." }),
+      { status: 400, headers: { "Content-Type": "application/json" } }
+    );
   }
 
   try {
-    const stream = await streamCopilotExplain(modelId, prompt);
-    // Increment usage on success (fire-and-forget, server-verified user only)
-    if (user) {
-      incrementAiUsage(user.id, modelId).catch(err =>
-        console.error("[ai-explain] usage increment failed (non-fatal):", err)
-      );
-    }
-    return new Response(stream, { headers });
+    const stream = await streamCopilotExplain(prompt.trim());
+    return new Response(stream, {
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+    });
   } catch (e) {
     console.error("[ai-explain] unhandled error:", e);
     return new Response(
