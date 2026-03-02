@@ -183,27 +183,19 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
 
     if (!forceNew && aiCached) { setAiText(aiCached); setAiParsed(parseAI(aiCached)); return; }
     setAiLoading(true); setAiText(""); setAiParsed(null);
-    // Read model from Supabase profile preferences (same source as settings page)
-    // Falls back to gpt-5-mini if profile has no preference or model is unavailable
-    let model = "gpt-5-mini";
+    // Read model from user's saved preferences — same source as settings page.
+    // Default: gpt-4.1 (matches /api/ai-explain route default, strong JSON output).
+    let model = "gpt-4.1";
     if (user) {
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("preferences")
-        .eq("id", user.id)
-        .maybeSingle();
-      const savedModel = (profileData?.preferences as Record<string, string> | null)?.ai_model;
-      if (savedModel) {
-        // Verify it's still a live model
-        try {
-          const ghRes = await fetch("/api/gh-models");
-          if (ghRes.ok) {
-            const liveModels: { id: string }[] = await ghRes.json();
-            const liveIds = new Set(liveModels.map(m => m.id));
-            model = liveIds.has(savedModel) ? savedModel : liveModels[0]?.id ?? "gpt-5-mini";
-          }
-        } catch { /* keep default */ }
-      }
+      try {
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("preferences")
+          .eq("id", user.id)
+          .maybeSingle();
+        const savedModel = (profileData?.preferences as Record<string, string> | null)?.ai_model;
+        if (savedModel) model = savedModel;
+      } catch { /* keep default gpt-4.1 */ }
     }
     const opts = q.choices.map((c, i) =>
       String.fromCharCode(65 + i) + ") " + c.contenu + " [" + (c.est_correct ? "CORRECTE" : "INCORRECTE") + "]"
