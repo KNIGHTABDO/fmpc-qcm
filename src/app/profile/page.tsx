@@ -1,19 +1,21 @@
 "use client";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { User, Camera, Save, Loader2, Check, Trophy, Target, BookOpen, Flame } from "lucide-react";
+import { Save, Loader2, Check, Target, BookOpen, Flame } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { supabase, getUserStats } from "@/lib/supabase";
 
 const YEARS = [1,2,3,4,5,6,7,8,9];
-const FACULTIES = ["FMPC","FMPR","FMPM","UM6SS","FMPDF"];
+const FACULTIES = ["FMPC","FMPR","FMPM","UM6SS","FMPPDF"];
 const FACULTY_NAMES: Record<string, string> = {
   FMPC: "FMPC – Casablanca",
   FMPR: "FMPR – Rabat",
   FMPM: "FMPM – Marrakech",
   UM6SS: "UM6SS – UM6",
-  FMPDF: "FMPDF – Fès",
+  FMPPDF: "FMPPDF – Fès",
 };
+
+interface Stats { total: number; correct: number; rate: number; streak: number; }
 
 export default function ProfilePage() {
   const { user, profile, loading: authLoading } = useAuth();
@@ -22,7 +24,7 @@ export default function ProfilePage() {
   const [faculty, setFaculty] = useState("FMPC");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [stats, setStats] = useState({ total: 0, correct: 0, rate: 0, streak: 0 });
+  const [stats, setStats] = useState<Stats>({ total: 0, correct: 0, rate: 0, streak: 0 });
 
   useEffect(() => {
     if (profile) {
@@ -52,45 +54,50 @@ export default function ProfilePage() {
     setTimeout(() => setSaved(false), 2500);
   }
 
-  const initials = username ? username.slice(0, 2).toUpperCase() : user?.email?.slice(0, 2).toUpperCase() ?? "??";
+  const initials = username
+    ? username.slice(0, 2).toUpperCase()
+    : user?.email?.slice(0, 2).toUpperCase() ?? "??";
+
   const rate = stats.total > 0 ? Math.round(stats.correct / stats.total * 100) : 0;
 
   const statCards = [
-    { label: "Questions", value: stats.total.toLocaleString(), icon: BookOpen, color: "var(--accent)" },
-    { label: "Précision", value: `${rate}%`, icon: Target, color: "var(--success)" },
-    { label: "Série", value: `${stats.streak}j`, icon: Flame, color: "var(--warning)" },
+    { label: "Questions", value: stats.total.toLocaleString("fr-FR"), icon: BookOpen },
+    { label: "Précision",  value: `${rate}%`,              icon: Target  },
+    { label: "Série",      value: `${stats.streak}j`,      icon: Flame   },
   ];
 
   return (
-    <main className="min-h-screen" style={{ background: "var(--bg)", color: "var(--text)" }}>
-      <div className="max-w-lg mx-auto px-4 pt-6 md:pt-8 pb-24 space-y-6">
+    <main className="min-h-screen pb-28" style={{ background: "var(--bg)", color: "var(--text)" }}>
+      <div className="max-w-lg mx-auto px-4 pt-8 pb-10 space-y-5">
 
         {/* Header */}
         <div>
-          <h1 className="text-xl font-bold" style={{ color: "var(--text)" }}>Mon profil</h1>
-          <p className="text-[13px] mt-0.5" style={{ color: "var(--text-muted)" }}>
+          <h1 className="text-2xl font-bold tracking-tight" style={{ color: "var(--text)" }}>Mon profil</h1>
+          <p className="text-sm mt-0.5" style={{ color: "var(--text-muted)" }}>
             Personnalise ton espace d'étude
           </p>
         </div>
 
-        {/* Avatar + name */}
+        {/* Avatar + info card */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
+          transition={{ duration: 0.35 }}
           className="flex items-center gap-4 p-5 rounded-2xl"
           style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
         >
+          {/* Avatar initials */}
           <div
-            className="w-16 h-16 rounded-2xl flex items-center justify-center text-xl font-bold flex-shrink-0"
+            className="w-16 h-16 rounded-2xl flex items-center justify-center text-xl font-bold flex-shrink-0 select-none"
             style={{
-              background: "var(--accent-subtle)",
-              color: "var(--accent)",
-              border: "2px solid var(--accent-border)",
+              background: "var(--surface-alt)",
+              color: "var(--text)",
+              border: "2px solid var(--border-strong)",
             }}
           >
             {initials}
           </div>
+
           <div className="flex-1 min-w-0">
             <p className="text-[15px] font-bold truncate" style={{ color: "var(--text)" }}>
               {profile?.username ?? user?.email?.split("@")[0] ?? "Utilisateur"}
@@ -104,6 +111,7 @@ export default function ProfilePage() {
                 style={{ background: "var(--surface-active)", color: "var(--text-secondary)" }}
               >
                 S{profile.annee_etude}
+                {profile.faculty ? ` · ${profile.faculty}` : ""}
               </span>
             )}
           </div>
@@ -111,7 +119,7 @@ export default function ProfilePage() {
 
         {/* Stats row */}
         {stats.total > 0 && (
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-2.5">
             {statCards.map((s, i) => {
               const Icon = s.icon;
               return (
@@ -120,10 +128,10 @@ export default function ProfilePage() {
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.07, duration: 0.3 }}
-                  className="flex flex-col items-center gap-1.5 py-4 rounded-xl"
+                  className="flex flex-col items-center gap-1.5 py-4 rounded-2xl"
                   style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
                 >
-                  <Icon className="w-4 h-4" style={{ color: s.color }} />
+                  <Icon className="w-4 h-4" style={{ color: "var(--text-muted)" }} />
                   <p className="text-[17px] font-bold tabular-nums" style={{ color: "var(--text)" }}>
                     {s.value}
                   </p>
@@ -133,6 +141,9 @@ export default function ProfilePage() {
             })}
           </div>
         )}
+
+        {/* Separator */}
+        <div className="h-px" style={{ background: "var(--border)" }} />
 
         {/* Edit form */}
         <motion.form
@@ -159,8 +170,8 @@ export default function ProfilePage() {
               placeholder="Ton prénom"
               className="w-full px-4 py-3 rounded-xl text-[14px] outline-none transition-all"
               style={{
-                background: "var(--input-bg)",
-                border: "1px solid var(--input-border)",
+                background: "var(--surface-alt)",
+                border: "1px solid var(--border)",
                 color: "var(--text)",
                 caretColor: "var(--accent)",
               }}
@@ -177,8 +188,8 @@ export default function ProfilePage() {
               onChange={e => setYear(Number(e.target.value))}
               className="w-full px-4 py-3 rounded-xl text-[14px] outline-none appearance-none"
               style={{
-                background: "var(--input-bg)",
-                border: "1px solid var(--input-border)",
+                background: "var(--surface-alt)",
+                border: "1px solid var(--border)",
                 color: "var(--text)",
               }}
             >
@@ -198,8 +209,8 @@ export default function ProfilePage() {
               onChange={e => setFaculty(e.target.value)}
               className="w-full px-4 py-3 rounded-xl text-[14px] outline-none appearance-none"
               style={{
-                background: "var(--input-bg)",
-                border: "1px solid var(--input-border)",
+                background: "var(--surface-alt)",
+                border: "1px solid var(--border)",
                 color: "var(--text)",
               }}
             >
@@ -222,14 +233,15 @@ export default function ProfilePage() {
             }}
           >
             {saving ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 size={16} className="animate-spin" />
             ) : saved ? (
-              <><Check className="w-4 h-4" /> Sauvegardé</>
+              <><Check size={16} /> Sauvegardé</>
             ) : (
-              <><Save className="w-4 h-4" /> Sauvegarder</>
+              <><Save size={16} /> Sauvegarder</>
             )}
           </motion.button>
         </motion.form>
+
       </div>
     </main>
   );
