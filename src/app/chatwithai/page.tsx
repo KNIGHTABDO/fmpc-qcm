@@ -13,6 +13,8 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { supabase } from "@/lib/supabase";
 import Image from "next/image";
 import Link from "next/link";
+import katex from "katex";
+import "katex/dist/katex.min.css";
 import type { Message } from "ai/react";
 
 // ── Thinking model detection ────────────────────────────────────────
@@ -36,8 +38,30 @@ function stripToolCallJson(text: string): string {
   return text.replace(/^\s*\{[^}]*"query"[^}]*\}\s*\n?/, "").trimStart();
 }
 
+// ── KaTeX inline math renderer ─────────────────────────────────────
+function MathInline({ src }: { src: string }) {
+  try {
+    const html = katex.renderToString(src, { throwOnError: false, displayMode: false });
+    return <span dangerouslySetInnerHTML={{ __html: html }} />;
+  } catch {
+    return <code className="text-xs font-mono" style={{ color: "var(--text-secondary)" }}>{src}</code>;
+  }
+}
+
+function MathBlock({ src }: { src: string }) {
+  try {
+    const html = katex.renderToString(src, { throwOnError: false, displayMode: true });
+    return (
+      <div className="my-3 overflow-x-auto text-center py-2" dangerouslySetInnerHTML={{ __html: html }} />
+    );
+  } catch {
+    return <pre className="text-xs font-mono my-2 overflow-x-auto" style={{ color: "var(--text-secondary)" }}>{src}</pre>;
+  }
+}
+
 function inlineFormat(text: string): React.ReactNode {
-  const parts = text.split(/(`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*|~~[^~]+~~|\[[^\]]+\]\([^)]+\))/g);
+  // Split on inline math $...$, code, bold, italic, strikethrough, links
+  const parts = text.split(/(`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*|~~[^~]+~~|\[[^\]]+\]\([^)]+\)|\$[^$\n]+\$)/g);
   return (
     <>
       {parts.map((part, j) => {
@@ -61,6 +85,9 @@ function inlineFormat(text: string): React.ReactNode {
               rel="noopener noreferrer" className="underline underline-offset-2"
               style={{ color: "var(--accent)" }}>{lm[1]}</a>
           );
+        // Inline math: $...$
+        if (part.startsWith("$") && part.endsWith("$") && part.length > 2)
+          return <MathInline key={j} src={part.slice(1, -1)} />;
         return <span key={j}>{part}</span>;
       })}
     </>
@@ -73,6 +100,26 @@ function renderMarkdown(text: string): React.ReactNode[] {
   let i = 0;
   while (i < lines.length) {
     const line = lines[i];
+    // Display math: $$ ... $$ (block-level)
+    if (line.trimStart().startsWith("$$")) {
+      const mathLines: string[] = [];
+      // single-line $$...$$ e.g. "$$E=mc^2$$"
+      const singleMatch = line.match(/^\$\$(.+)\$\$\s*$/);
+      if (singleMatch) {
+        result.push(<MathBlock key={"mb"+i} src={singleMatch[1]} />);
+        i++; continue;
+      }
+      // multi-line $$...$$
+      const openContent = line.slice(line.indexOf("$$") + 2).trim();
+      if (openContent) mathLines.push(openContent);
+      i++;
+      while (i < lines.length && !lines[i].trimStart().startsWith("$$")) {
+        mathLines.push(lines[i]); i++;
+      }
+      i++; // skip closing $$
+      result.push(<MathBlock key={"mb"+i} src={mathLines.join("\n")} />);
+      continue;
+    }
     if (line.includes("|") && i + 1 < lines.length && /^[|\s:-]+$/.test(lines[i + 1])) {
       const tableLines: string[] = [line]; i++;
       while (i < lines.length && lines[i].includes("|")) { tableLines.push(lines[i]); i++; }
@@ -148,9 +195,16 @@ function renderMarkdown(text: string): React.ReactNode[] {
       continue;
     }
     if (/^\d+\.\s/.test(line)) {
-      const items: string[] = []; let n = 1;
-      while (i < lines.length && /^\d+\.\s/.test(lines[i])) {
-        items.push(lines[i].replace(/^\d+\.\s/, "")); i++;
+      const items: string[] = [];
+      while (i < lines.length) {
+        if (/^\d+\.\s/.test(lines[i])) {
+          items.push(lines[i].replace(/^\d+\.\s/, "")); i++;
+        } else if (lines[i].trim() === "" && i + 1 < lines.length && /^\d+\.\s/.test(lines[i + 1])) {
+          // blank line between numbered items — skip it, keep collecting
+          i++;
+        } else {
+          break;
+        }
       }
       result.push(
         <ol key={"ol"+i} className="space-y-1.5 my-2 pl-1">
