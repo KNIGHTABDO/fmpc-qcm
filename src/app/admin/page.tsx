@@ -18,7 +18,7 @@ interface RegenStats { total_questions: number; total_explained: number; missing
 type RegenPhase = "idle" | "checking" | "running" | "done" | "error";
 
 const REGEN_BATCH = 20;
-const SEMESTER_MAP: Record<number, string> = { 1:"S1", 2:"S3", 3:"S5", 4:"S7", 5:"S9" };
+const SEMESTER_MAP: Record<number, string> = { 1:"S1", 2:"S2", 3:"S3", 4:"S4", 5:"S5", 6:"S6", 7:"S7", 8:"S8", 9:"S9" };
 
 async function authHeader() {
   const { data: { session } } = await supabase.auth.getSession();
