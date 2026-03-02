@@ -164,7 +164,7 @@ export async function POST(req: NextRequest) {
     let quotaInfo: { remaining: number; limit: number; multiplier: number } | null = null;
     if (user) {
       const quota = await checkAiQuota(user.id, modelId, isAdmin);
-      quotaInfo = { remaining: quota.remaining, limit: quota.limit, multiplier: quota.multiplier };
+      quotaInfo = { remaining: quota.remaining, limit: quota.limit, multiplier: quota.resolvedMultiplier ?? quota.multiplier };
       if (!quota.allowed) {
         const label = quota.multiplier === 3 ? "modèles premium lourds (×3)" : "modèles premium (×1)";
         return new Response(
@@ -279,9 +279,11 @@ export async function POST(req: NextRequest) {
     if (user) {
       const uid = user.id;
       const mid = modelId;
+      // Pass pre-resolved multiplier to avoid a second DB call and eliminate static fallback race
+      const preResolvedMultiplier = quotaInfo?.multiplier as 0 | 1 | 3 | undefined;
       const existing = (streamOpts as any).onFinish;
       (streamOpts as any).onFinish = async (...args: unknown[]) => {
-        incrementAiUsage(uid, mid).catch(err =>
+        incrementAiUsage(uid, mid, preResolvedMultiplier).catch(err =>
           console.error("[chat] usage increment failed (non-fatal):", err)
         );
         if (existing) await (existing as (...a: unknown[]) => void)(...args);
