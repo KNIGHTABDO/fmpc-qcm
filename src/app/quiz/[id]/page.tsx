@@ -165,7 +165,7 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
     setAiCached(null); setAiText(""); setAiParsed(null);
     if (!q) return;
     supabase.from("ai_explanations").select("explanation").eq("question_id", q.id).maybeSingle()
-      .then(({ data }) => { if (data?.explanation) setAiCached(data.explanation); });
+      .then(({ data }) => { if (data?.explanation && data.explanation.length > 10 && data.explanation !== "[]") setAiCached(data.explanation); });
   }, [q?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // AbortController ref — cancels in-flight AI fetches when user navigates
@@ -181,7 +181,7 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
     const controller = new AbortController();
     aiAbortRef.current = controller;
 
-    if (!forceNew && aiCached) { setAiText(aiCached); setAiParsed(parseAI(aiCached)); return; }
+    if (!forceNew && aiCached) { const cp = parseAI(aiCached); if (cp) { setAiText(aiCached); setAiParsed(cp); return; } }
     setAiLoading(true); setAiText(""); setAiParsed(null);
     // Read model from user's saved preferences — same source as settings page.
     // Default: gpt-4.1 (matches /api/ai-explain route default, strong JSON output).
