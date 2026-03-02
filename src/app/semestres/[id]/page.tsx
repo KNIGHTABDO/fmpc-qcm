@@ -1,7 +1,7 @@
 "use client";
 import { use, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { BookOpen, ChevronRight, ArrowLeft, Search, Loader2, CheckCircle, Clock, Lock } from "lucide-react";
+import { BookOpen, ChevronRight, ArrowLeft, Search, Loader2, CheckCircle } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
@@ -154,7 +154,6 @@ export default function SemestreModulesPage({ params }: { params: Promise<{ id: 
             <motion.div
               animate={{
                 borderColor: searchFocused ? "var(--border-strong)" : "var(--border)",
-                boxShadow: searchFocused ? "0 0 0 3px var(--input-focus)" : "none",
               }}
               transition={{ duration: 0.15 }}
               className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl"
@@ -220,6 +219,8 @@ export default function SemestreModulesPage({ params }: { params: Promise<{ id: 
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.04, duration: 0.3 }}
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.98 }}
                 >
                   <Link
                     href={`/semestres/${id}/${mod.id}`}
@@ -228,14 +229,7 @@ export default function SemestreModulesPage({ params }: { params: Promise<{ id: 
                       background: "var(--surface)",
                       border: "1px solid var(--border)",
                     }}
-                    onMouseEnter={e => {
-                      (e.currentTarget as HTMLElement).style.background = "var(--surface-alt)";
-                      (e.currentTarget as HTMLElement).style.borderColor = "var(--border-strong)";
-                    }}
-                    onMouseLeave={e => {
-                      (e.currentTarget as HTMLElement).style.background = "var(--surface)";
-                      (e.currentTarget as HTMLElement).style.borderColor = "var(--border)";
-                    }}
+
                   >
                     <div className="flex items-start gap-3">
                       {/* Module icon */}
@@ -307,8 +301,8 @@ export default function SemestreModulesPage({ params }: { params: Promise<{ id: 
                                 {answered}/{mod.total_questions} répondues
                               </span>
                               <span className="text-[10px] font-medium" style={{ color: pct > 0 ? "var(--text-secondary)" : "var(--text-disabled)" }}>
-                                {pct}%
-                              </span>
+                               {pct}%
+                               </span>
                             </div>
                           </div>
                         )}
