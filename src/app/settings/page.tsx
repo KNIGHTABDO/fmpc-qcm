@@ -296,13 +296,13 @@ export default function SettingsPage() {
                           aria-selected={selectedModel === m.id}>
                           <div>
                             <div className="font-medium flex items-center gap-2">
-                              <div className="w-1.5 h-1.5 rounded-full" style={{ background: PROVIDER_COLORS[m.publisher] ?? "rgba(255,255,255,0.3)" }} />
+                              <div className="w-1.5 h-1.5 rounded-full" style={{ background: PROVIDER_COLORS[m.publisher] ?? "var(--text-muted)" }} />
                               {m.name || modelLabel(m.id)}
                             </div>
                             <div className="flex items-center gap-1.5 mt-0.5">
                               {m.publisher && (
                                 <div className="flex items-center gap-1.5">
-                                  <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: PROVIDER_COLORS[m.publisher] ?? "rgba(255,255,255,0.3)" }} />
+                                  <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: PROVIDER_COLORS[m.publisher] ?? "var(--text-muted)" }} />
                                   <span className="text-xs" style={{ color: "var(--text-muted)" }}>{m.publisher}</span>
                                   {(() => {
                                     const mp = (m as GhModel & { premium_multiplier?: number }).premium_multiplier;
