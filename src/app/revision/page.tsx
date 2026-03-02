@@ -57,11 +57,6 @@ export default function RevisionPage() {
         .eq("user_id", user!.id)
         .eq("is_correct", false);
 
-      const { data: allAnswers } = await supabase
-        .from("user_answers")
-        .select("question_id, is_correct")
-        .eq("user_id", user!.id);
-
       const wrongCount: Record<string, number> = {};
       for (const a of wrongAnswers ?? []) {
         wrongCount[a.question_id] = (wrongCount[a.question_id] ?? 0) + 1;
@@ -72,15 +67,22 @@ export default function RevisionPage() {
         .map(([id]) => id);
 
       if (!weakIds.length) {
-        setStats({ total_wrong: (allAnswers ?? []).filter(a => !a.is_correct).length, weak_modules: 0, worst_module: null });
+        setStats({ total_wrong: 0, weak_modules: 0, worst_module: null });
         setLoading(false);
         return;
       }
 
-      const { data: questions } = await supabase
-        .from("questions")
-        .select("id, module_id")
-        .in("id", weakIds.slice(0, 200));
+      // Fetch in chunks of 500 to avoid URL length limits
+      const chunkSize = 500;
+      const allQuestions: { id: string; module_id: number }[] = [];
+      for (let i = 0; i < weakIds.length; i += chunkSize) {
+        const { data: chunk } = await supabase
+          .from("questions")
+          .select("id, module_id")
+          .in("id", weakIds.slice(i, i + chunkSize));
+        if (chunk) allQuestions.push(...chunk);
+      }
+      const questions = allQuestions;
 
       const modWrong: Record<number, number> = {};
       for (const q of questions ?? []) {
