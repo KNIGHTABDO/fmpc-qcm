@@ -7,7 +7,7 @@ import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import { getCopilotToken, getCopilotBaseURL } from "@/lib/copilot-token";
-import { checkAiQuota, incrementAiUsage, getModelMultiplier } from "@/lib/ai-rate-limit";
+import { checkAiQuota, incrementAiUsage, getModelMultiplier, resolveModelMultiplier } from "@/lib/ai-rate-limit";
 
 export const maxDuration = 90;
 
@@ -162,21 +162,41 @@ export async function POST(req: NextRequest) {
       );
     }
     let quotaInfo: { remaining: number; limit: number; multiplier: number } | null = null;
+    // Always resolve the true model multiplier for tracking — independent of admin bypass.
+    // resolveModelMultiplier is called even for admins so usage is tracked at the correct tier.
+    let trackingMultiplier: 0 | 1 | 3 = 1; // safe default
     if (user) {
-      const quota = await checkAiQuota(user.id, modelId, isAdmin);
-      quotaInfo = { remaining: quota.remaining, limit: quota.limit, multiplier: quota.resolvedMultiplier ?? quota.multiplier };
-      if (!quota.allowed) {
-        const label = quota.multiplier === 3 ? "modèles premium lourds (×3)" : "modèles premium (×1)";
-        return new Response(
-          JSON.stringify({
-            error: "rate_limited",
-            message: `Limite journalière atteinte pour les ${label} (${quota.limit}/jour). Réessaie demain ou utilise un modèle plus léger.`,
-            remaining: 0,
-            limit: quota.limit,
-          }),
-          { status: 429, headers: { "Content-Type": "application/json" } }
-        );
+      // Resolve true multiplier for tracking (never returns 0 for unknown models)
+      const dbMultiplier = await resolveModelMultiplier(modelId);
+      trackingMultiplier = dbMultiplier ?? 1;
+
+      if (!isAdmin) {
+        // Non-admin: enforce quota using real multiplier
+        const quota = await checkAiQuota(user.id, modelId, false);
+        quotaInfo = { remaining: quota.remaining, limit: quota.limit, multiplier: trackingMultiplier };
+        if (!quota.allowed) {
+          const label = trackingMultiplier === 3 ? "modèles premium lourds (×3)" : "modèles premium (×1)";
+          return new Response(
+            JSON.stringify({
+              error: "rate_limited",
+              message: `Limite journalière atteinte pour les ${label} (${quota.limit}/jour). Réessaie demain ou utilise un modèle plus léger.`,
+              remaining: 0,
+              limit: quota.limit,
+            }),
+            { status: 429, headers: { "Content-Type": "application/json" } }
+          );
+        }
+      } else {
+        // Admin bypass: skip quota check, still track usage
+        quotaInfo = { remaining: 999, limit: 999, multiplier: trackingMultiplier };
       }
+
+      // ── COUNT BEFORE STREAM (not in onFinish) ──────────────────────────────
+      // onFinish runs after the response is sent — Next.js Fluid lambdas do NOT
+      // guarantee async work completes after stream close. Counting here ensures
+      // every request that reaches the model is tracked, matching how all major
+      // AI providers operate (billed per request, not per completion).
+      await incrementAiUsage(user.id, modelId, trackingMultiplier);
     }
 
     // Gemini sends delta.content=null in reasoning frames — @ai-sdk/openai-compatible v0.2.0 throws on this.
@@ -275,28 +295,12 @@ export async function POST(req: NextRequest) {
       streamOpts.providerOptions = { openaicompatible: thinkingOpts };
     }
 
-    // Increment usage on stream finish (only counts successful completions)
-    if (user) {
-      const uid = user.id;
-      const mid = modelId;
-      // Pass pre-resolved multiplier to avoid a second DB call and eliminate static fallback race
-      const preResolvedMultiplier = quotaInfo?.multiplier as 0 | 1 | 3 | undefined;
-      const existing = (streamOpts as any).onFinish;
-      (streamOpts as any).onFinish = async (...args: unknown[]) => {
-        incrementAiUsage(uid, mid, preResolvedMultiplier).catch(err =>
-          console.error("[chat] usage increment failed (non-fatal):", err)
-        );
-        if (existing) await (existing as (...a: unknown[]) => void)(...args);
-      };
-    }
-
     const result = await streamText(streamOpts as Parameters<typeof streamText>[0]);
     const streamResp = result.toDataStreamResponse();
-    // Expose remaining quota in headers so the UI can show a badge
-    if (quotaInfo && quotaInfo.multiplier > 0) {
-      // -1 because this request is about to consume one slot (via onFinish)
-      const displayRemaining = Math.max(0, quotaInfo.remaining - 1);
-      streamResp.headers.set("X-Quota-Remaining", String(displayRemaining));
+    // Expose quota in headers for the UI — now that usage is counted before stream,
+    // remaining is already decremented in DB; show actual remaining without -1 adjustment
+    if (quotaInfo) {
+      streamResp.headers.set("X-Quota-Remaining", String(quotaInfo.remaining > 900 ? 999 : Math.max(0, quotaInfo.remaining)));
       streamResp.headers.set("X-Quota-Limit", String(quotaInfo.limit));
       streamResp.headers.set("X-Quota-Multiplier", String(quotaInfo.multiplier));
     }
