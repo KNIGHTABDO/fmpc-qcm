@@ -75,7 +75,7 @@ function CertCard({ cert, onShare, onDelete }: { cert: Certificate; onShare: (ce
         </div>
       </div>
       <div className="flex items-center gap-2 mt-4">
-        <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
+        <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: "var(--surface-active)" }}>
           <div className="h-full rounded-full" style={{ width: `${cert.score_pct}%`, background: m.color }} />
         </div>
         <button onClick={() => onShare(cert)}
@@ -85,7 +85,7 @@ function CertCard({ cert, onShare, onDelete }: { cert: Certificate; onShare: (ce
         </button>
         <button onClick={() => onDelete(cert)}
           className="w-8 h-8 rounded-xl flex items-center justify-center transition-all active:scale-95 flex-shrink-0"
-          style={{ background: "rgba(239,68,68,0.08)", color: "rgba(239,68,68,0.6)", border: "1px solid rgba(239,68,68,0.15)" }}
+          style={{ background: "var(--error-subtle)", color: "rgba(239,68,68,0.6)", border: "1px solid rgba(239,68,68,0.15)" }}
           title="Supprimer et regénérer">
           <Trash2 size={12} />
         </button>

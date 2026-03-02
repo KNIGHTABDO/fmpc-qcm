@@ -113,8 +113,8 @@ export default function ActivatePage() {
   const displayName = profile?.full_name || profile?.username || user?.email?.split("@")[0] || "Utilisateur";
 
   const statusConfig = {
-    loading:  { color: "rgba(255,255,255,0.2)",  label: "Chargement…", Icon: Clock,        pulse: false },
-    inactive: { color: "rgba(255,255,255,0.15)", label: "Non activé",  Icon: Lock,         pulse: false },
+    loading:  { color: "var(--text-muted)",  label: "Chargement…", Icon: Clock,        pulse: false },
+    inactive: { color: "var(--border-strong)", label: "Non activé",  Icon: Lock,         pulse: false },
     pending:  { color: "rgba(251,191,36,0.9)",   label: "En attente",  Icon: Clock,        pulse: true  },
     approved: { color: "rgba(34,197,94,0.9)",    label: "Activé",      Icon: CheckCircle,  pulse: false },
     denied:   { color: "rgba(239,68,68,0.9)",    label: "Refusé",      Icon: XCircle,      pulse: false },
@@ -170,7 +170,7 @@ export default function ActivatePage() {
           <div className="px-6 pt-6 pb-5 border-b" style={{ borderColor: "var(--border)" }}>
             <div className="flex items-center gap-3">
               <div className="w-11 h-11 rounded-xl flex items-center justify-center text-lg font-bold flex-shrink-0"
-                style={{ background: "rgba(255,255,255,0.08)", color: "var(--text)" }}>
+                style={{ background: "var(--surface-active)", color: "var(--text)" }}>
                 {avatar}
               </div>
               <div className="min-w-0">
@@ -180,7 +180,7 @@ export default function ActivatePage() {
               {/* Status badge */}
               <div className="ml-auto flex-shrink-0">
                 <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-semibold relative ${cfg.pulse ? "overflow-visible" : ""}`}
-                  style={{ background: `${cfg.color}18`, color: cfg.color.replace("0.9","1").replace("0.15","rgba(255,255,255,0.6)").replace("0.2","rgba(255,255,255,0.4)") }}>
+                  style={{ background: `${cfg.color}18`, color: cfg.color.replace("0.9","1").replace("0.15","var(--text-secondary)").replace("0.2","var(--text-secondary)") }}>
                   {cfg.pulse && (
                     <span className="absolute inset-0 rounded-xl animate-ping opacity-30"
                       style={{ background: cfg.color }} />
@@ -207,7 +207,7 @@ export default function ActivatePage() {
                     </p>
                   </div>
                   {error && (
-                    <p className="text-xs py-2 px-3 rounded-xl" style={{ background: "rgba(239,68,68,0.1)", color: "#f87171" }}>
+                    <p className="text-xs py-2 px-3 rounded-xl" style={{ background: "var(--error-subtle)", color: "#f87171" }}>
                       {error}
                     </p>
                   )}
@@ -252,7 +252,7 @@ export default function ActivatePage() {
                     Cette page se met à jour automatiquement…
                   </p>
                   {error && (
-                    <p className="text-xs py-2 px-3 rounded-xl" style={{ background: "rgba(239,68,68,0.1)", color: "#f87171" }}>
+                    <p className="text-xs py-2 px-3 rounded-xl" style={{ background: "var(--error-subtle)", color: "#f87171" }}>
                       {error}
                     </p>
                   )}
@@ -304,7 +304,7 @@ export default function ActivatePage() {
                   className="space-y-4 text-center">
                   <div className="flex justify-center">
                     <div className="w-14 h-14 rounded-2xl flex items-center justify-center"
-                      style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)" }}>
+                      style={{ background: "var(--error-subtle)", border: "1px solid rgba(239,68,68,0.2)" }}>
                       <XCircle className="w-7 h-7" style={{ color: "#ef4444" }} />
                     </div>
                   </div>
@@ -315,13 +315,13 @@ export default function ActivatePage() {
                     </p>
                   </div>
                   {error && (
-                    <p className="text-xs py-2 px-3 rounded-xl" style={{ background: "rgba(239,68,68,0.1)", color: "#f87171" }}>{error}</p>
+                    <p className="text-xs py-2 px-3 rounded-xl" style={{ background: "var(--error-subtle)", color: "#f87171" }}>{error}</p>
                   )}
                   <motion.button whileTap={{ scale: 0.97 }}
                     onClick={handleRequest}
                     disabled={requesting}
                     className="w-full py-3.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-60"
-                    style={{ background: "rgba(255,255,255,0.06)", color: "var(--text)", border: "1px solid var(--border)" }}>
+                    style={{ background: "var(--surface-active)", color: "var(--text)", border: "1px solid var(--border)" }}>
                     {requesting ? <><RefreshCw className="w-4 h-4 animate-spin" />Envoi…</> : <>Renvoyer la demande</>}
                   </motion.button>
                 </motion.div>
