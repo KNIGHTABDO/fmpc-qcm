@@ -485,6 +485,8 @@ export default function ChatWithAIPage() {
   type QuotaCategory = { multiplier: number; label: string; colorKey: string; used: number; limit: number; usedAlltime: number; remaining: number | null; unlimited: boolean };
   const [quotaCategories, setQuotaCategories] = useState<QuotaCategory[]>([]);
   const [quotaLoaded, setQuotaLoaded] = useState(false);
+  const [dbHistory, setDbHistory] = useState<{ id: string; role: string; content: string; created_at: string }[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   const fetchQuota = async () => {
     try {
@@ -493,6 +495,14 @@ export default function ChatWithAIPage() {
     } catch { /* non-fatal */ }
   };
   useEffect(() => { fetchQuota(); }, []); // eslint-disable-line
+
+  const fetchDbHistory = async () => {
+    setHistoryLoading(true);
+    try {
+      const res = await fetch("/api/chat/history?limit=100&offset=0");
+      if (res.ok) { const d = await res.json(); setDbHistory(d.messages ?? []); }
+    } finally { setHistoryLoading(false); }
+  };
 
   const { messages, input, handleInputChange, handleSubmit, isLoading, error, setMessages, setInput, stop, reload } = useChat({
     api: "/api/chat",
@@ -586,6 +596,7 @@ export default function ChatWithAIPage() {
     setMessages([]);
     savedMsgIds.current.clear();
     loadedMsgCountRef.current = 0;
+    setDbHistory([]);
     if (user) await fetch("/api/chat/history", { method: "DELETE" });
   }, [user, setMessages]);
 
@@ -628,21 +639,39 @@ export default function ChatWithAIPage() {
                 </button>
               </div>
               <div className="flex-1 overflow-y-auto px-2 py-2">
-                {messages.filter(m => m.role === "user").slice(0, 20).map((m, i) => (
-                  <div key={i} className="px-3 py-2.5 rounded-lg mb-0.5 cursor-pointer transition-all"
-                    style={{ background: "transparent", color: "var(--text-secondary)" }}
-                    onMouseEnter={e => (e.currentTarget.style.background = "var(--surface-alt)")}
-                    onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
-                    <p className="text-[13px] truncate">{m.content.slice(0, 60)}</p>
-                  </div>
-                ))}
-                {messages.length === 0 && (
-                  <p className="text-center py-8 text-[12px]" style={{ color: "var(--text-muted)" }}>
-                    Aucun message
-                  </p>
+                {historyLoading && (
+                  <p className="text-center py-8 text-[12px]" style={{ color: "var(--text-muted)" }}>Chargement…</p>
                 )}
+                {!historyLoading && dbHistory.filter(m => m.role === "user").length === 0 && (
+                  <p className="text-center py-8 text-[12px]" style={{ color: "var(--text-muted)" }}>Aucun historique</p>
+                )}
+                {!historyLoading && (() => {
+                  const userMsgs = dbHistory.filter(m => m.role === "user").reverse();
+                  const groups: Record<string, typeof userMsgs> = {};
+                  userMsgs.forEach(m => {
+                    const d = new Date(m.created_at).toLocaleDateString("fr-MA", { day: "numeric", month: "short" });
+                    if (!groups[d]) groups[d] = [];
+                    groups[d].push(m);
+                  });
+                  return Object.entries(groups).map(([date, msgs]) => (
+                    <div key={date}>
+                      <p className="px-3 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-disabled)" }}>{date}</p>
+                      {msgs.map((m, i) => (
+                        <div key={m.id ?? i} className="px-3 py-2 rounded-lg mb-0.5 transition-all"
+                          style={{ background: "transparent", color: "var(--text-secondary)" }}
+                          onMouseEnter={e => (e.currentTarget.style.background = "var(--surface-alt)")}
+                          onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
+                          <p className="text-[12px] truncate leading-snug">{m.content.slice(0, 70)}</p>
+                          <p className="text-[10px] mt-0.5" style={{ color: "var(--text-disabled)" }}>
+                            {new Date(m.created_at).toLocaleTimeString("fr-MA", { hour: "2-digit", minute: "2-digit" })}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  ));
+                })()}
               </div>
-              {messages.length > 0 && (
+              {dbHistory.length > 0 && (
                 <div className="px-3 py-3" style={{ borderTop: "1px solid var(--border)" }}>
                   <button
                     onClick={() => { handleClearHistory(); setSidebarOpen(false); }}
@@ -682,7 +711,7 @@ export default function ChatWithAIPage() {
             </Link>
             {/* Mobile: sidebar toggle */}
             <button
-              onClick={() => setSidebarOpen(true)}
+              onClick={() => { setSidebarOpen(true); fetchDbHistory(); }}
               className="lg:hidden p-1.5 rounded-lg transition-all"
               style={{ color: "var(--text-muted)" }}
             >
@@ -737,27 +766,30 @@ export default function ChatWithAIPage() {
         </AnimatePresence>
 
         {/* ── Quota bar ── */}
-        {quotaLoaded && quotaCategories.some(c => !c.unlimited) && (
+        {quotaLoaded && quotaCategories.length > 0 && (
           <div className="mx-3 mt-2 flex gap-3">
-            {quotaCategories.filter(c => !c.unlimited).map(cat => {
-              const pct = cat.limit > 0 ? Math.round((cat.used / cat.limit) * 100) : 0;
-              const isAtLimit = cat.remaining === 0;
+            {quotaCategories.map(cat => {
+              const pct = cat.unlimited ? 0 : cat.limit > 0 ? Math.round((cat.used / cat.limit) * 100) : 0;
+              const isAtLimit = !cat.unlimited && cat.remaining === 0;
               const barColor = isAtLimit ? "var(--error)" : pct >= 70 ? "var(--warning)" : "var(--accent)";
+              if (cat.unlimited && (cat.usedAlltime ?? 0) === 0) return null;
               return (
                 <div key={cat.multiplier} className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-[10px] font-medium" style={{ color: "var(--text-muted)" }}>{cat.label}</span>
                     <span className="text-[10px] font-semibold tabular-nums"
                       style={{ color: isAtLimit ? "var(--error)" : "var(--text-muted)" }}>
-                      {cat.used}/{cat.limit}
+                      {cat.unlimited ? `${cat.used} auj.` : `${cat.used}/${cat.limit}`}
                     </span>
                   </div>
-                  <div className="h-[2px] rounded-full overflow-hidden" style={{ background: "var(--border)" }}>
-                    <div className="h-full rounded-full transition-all duration-500"
-                      style={{ width: `${Math.min(100, pct)}%`, background: barColor }}
-                    />
-                  </div>
-                  {cat.usedAlltime > 0 && (
+                  {!cat.unlimited && (
+                    <div className="h-[2px] rounded-full overflow-hidden" style={{ background: "var(--border)" }}>
+                      <div className="h-full rounded-full transition-all duration-500"
+                        style={{ width: `${Math.min(100, pct)}%`, background: barColor }}
+                      />
+                    </div>
+                  )}
+                  {(cat.usedAlltime ?? 0) > 0 && (
                     <p className="text-[9px] mt-0.5 tabular-nums" style={{ color: "var(--text-disabled)" }}>
                       {cat.usedAlltime} total
                     </p>
