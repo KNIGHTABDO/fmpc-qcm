@@ -66,11 +66,11 @@ function inlineFormat(text: string): React.ReactNode {
     <>
       {parts.map((part, j) => {
         if (part.startsWith("**") && part.endsWith("**"))
-          return <strong key={j} className="font-semibold" style={{ color: "var(--text)" }}>{part.slice(2, -2)}</strong>;
+          return <strong key={j} className="font-semibold" style={{ color: "var(--text)" }}>{inlineFormat(part.slice(2, -2))}</strong>;
         if (part.startsWith("*") && part.endsWith("*"))
-          return <em key={j}>{part.slice(1, -1)}</em>;
+          return <em key={j}>{inlineFormat(part.slice(1, -1))}</em>;
         if (part.startsWith("~~") && part.endsWith("~~"))
-          return <s key={j}>{part.slice(2, -2)}</s>;
+          return <s key={j}>{inlineFormat(part.slice(2, -2))}</s>;
         if (part.startsWith("`") && part.endsWith("`"))
           return (
             <code key={j} className="px-1.5 py-0.5 rounded text-xs font-mono"
@@ -88,7 +88,7 @@ function inlineFormat(text: string): React.ReactNode {
         // Inline math: $...$
         if (part.startsWith("$") && part.endsWith("$") && part.length > 2)
           return <MathInline key={j} src={part.slice(1, -1)} />;
-        return <span key={j}>{part}</span>;
+        return <span key={j}>{part.replace(/ -> /g, " → ").replace(/ --> /g, " ⟶ ")}</span>;
       })}
     </>
   );
