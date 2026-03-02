@@ -67,8 +67,7 @@ function CreateModal({ onClose, modules, userId, displayName }: {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
-      className="bg-black/50 backdrop-blur-sm" onClick={onClose}>
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
       <motion.div initial={{ y: 40, scale: 0.97 }} animate={{ y: 0, scale: 1 }}
         exit={{ y: 40, scale: 0.97 }} transition={{ type: "spring", damping: 28, stiffness: 320 }}
         className="w-full max-w-sm rounded-3xl p-6 space-y-5"
@@ -142,8 +141,7 @@ function JoinModal({ onClose, userId, displayName }: {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
-      className="bg-black/50 backdrop-blur-sm" onClick={onClose}>
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
       <motion.div initial={{ y: 40, scale: 0.97 }} animate={{ y: 0, scale: 1 }}
         exit={{ y: 40, scale: 0.97 }} transition={{ type: "spring", damping: 28, stiffness: 320 }}
         className="w-full max-w-sm rounded-3xl p-6 space-y-5"
