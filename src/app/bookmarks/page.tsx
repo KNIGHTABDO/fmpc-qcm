@@ -1,196 +1,308 @@
 "use client";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Bookmark, Loader2, BookmarkX, ArrowRight, Search } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/components/auth/AuthProvider";
+import { Bookmark, Loader2, BookOpen, ChevronRight, Search, Trash2, X, LogIn } from "lucide-react";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
-import { RichText } from "@/components/ui/RichText";
+import { useAuth } from "@/components/auth/AuthProvider";
 
-interface BookmarkedQuestion {
+type BookmarkedQ = {
   id: string;
   question_id: string;
   created_at: string;
   questions: {
     id: string;
     texte: string;
-    activity_id: number;
-    activities: { id: number; nom: string; modules: { nom: string } | null } | null;
-  } | null;
-}
+    image_url: string | null;
+    activities: {
+      id: number;
+      nom: string;
+      modules: { id: number; nom: string } | null;
+    } | null;
+  };
+};
 
 export default function BookmarksPage() {
-  const { user } = useAuth();
-  const router = useRouter();
-  const [bookmarks, setBookmarks] = useState<BookmarkedQuestion[]>([]);
+  const { user, loading: authLoading } = useAuth();
+  const [bookmarks, setBookmarks] = useState<BookmarkedQ[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [searchFocused, setSearchFocused] = useState(false);
   const [removing, setRemoving] = useState<string | null>(null);
 
-  useEffect(() => {
+  async function load() {
     if (!user) { setLoading(false); return; }
-    loadBookmarks();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
-
-  async function loadBookmarks() {
     setLoading(true);
     const { data } = await supabase
       .from("bookmarks")
-      .select("id, question_id, created_at, questions(id, texte, activity_id, activities(id, nom, modules(nom)))")
-      .eq("user_id", user!.id)
+      .select(`
+        id, question_id, created_at,
+        questions (
+          id, texte, image_url,
+          activities (
+            id, nom,
+            modules ( id, nom )
+          )
+        )
+      `)
+      .eq("user_id", user.id)
       .order("created_at", { ascending: false });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    setBookmarks((data ?? []) as unknown as BookmarkedQuestion[]);
+
+    setBookmarks((data ?? []) as unknown as BookmarkedQ[]);
     setLoading(false);
   }
 
+  useEffect(() => {
+    if (!authLoading) load();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, authLoading]);
+
   async function removeBookmark(bookmarkId: string, questionId: string) {
-    setRemoving(questionId);
+    setRemoving(bookmarkId);
     await supabase.from("bookmarks").delete().eq("id", bookmarkId);
     setBookmarks(prev => prev.filter(b => b.id !== bookmarkId));
     setRemoving(null);
   }
 
   const filtered = bookmarks.filter(b =>
-    !search || b.questions?.texte.toLowerCase().includes(search.toLowerCase()) ||
-    b.questions?.activities?.nom.toLowerCase().includes(search.toLowerCase())
+    !search ||
+    b.questions?.texte?.toLowerCase().includes(search.toLowerCase()) ||
+    b.questions?.activities?.nom?.toLowerCase().includes(search.toLowerCase()) ||
+    b.questions?.activities?.modules?.nom?.toLowerCase().includes(search.toLowerCase())
   );
 
-  if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--bg)" }}>
-        <div className="text-center space-y-3">
-          <Bookmark size={32} style={{ color: "var(--text-muted)", margin: "0 auto" }} />
-          <p className="text-sm font-medium" style={{ color: "var(--text)" }}>Connexion requise</p>
-          <p className="text-xs" style={{ color: "var(--text-muted)" }}>Connectez-vous pour voir vos favoris</p>
-          <button onClick={() => router.push("/auth")}
-            className="px-4 py-2 rounded-xl text-sm font-semibold mt-2"
-            style={{ background: "var(--text)", color: "var(--bg)" }}>
-            Se connecter
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen pb-24" style={{ background: "var(--bg)" }}>
-      <div className="max-w-lg mx-auto px-4 pt-8 space-y-5">
+    <main className="min-h-screen" style={{ background: "var(--bg)", color: "var(--text)" }}>
+      <div className="max-w-2xl mx-auto px-4">
 
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold" style={{ color: "var(--text)" }}>Favoris</h1>
-            <p className="text-sm mt-0.5" style={{ color: "var(--text-muted)" }}>
-              {loading ? "Chargement…" : `${bookmarks.length} question${bookmarks.length !== 1 ? "s" : ""} sauvegardée${bookmarks.length !== 1 ? "s" : ""}`}
-            </p>
+        {/* ── Sticky header ── */}
+        <div className="sticky top-0 z-20 pt-6 pb-3" style={{ background: "var(--bg)" }}>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-xl font-bold" style={{ color: "var(--text)" }}>Favoris</h1>
+              <p className="text-[13px] mt-0.5" style={{ color: "var(--text-muted)" }}>
+                {loading ? "Chargement…" : `${bookmarks.length} question${bookmarks.length !== 1 ? "s" : ""} sauvegardée${bookmarks.length !== 1 ? "s" : ""}`}
+              </p>
+            </div>
+            <div
+              className="w-10 h-10 rounded-xl flex items-center justify-center"
+              style={{ background: "var(--surface-alt)", border: "1px solid var(--border)" }}
+            >
+              <Bookmark className="w-5 h-5" style={{ color: "var(--text-secondary)" }} />
+            </div>
           </div>
-          <div className="w-10 h-10 rounded-2xl flex items-center justify-center" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-            <Bookmark size={18} style={{ color: "var(--accent)" }} />
-          </div>
+
+          {/* Search */}
+          {bookmarks.length > 3 && (
+            <motion.div
+              animate={{
+                borderColor: searchFocused ? "var(--border-strong)" : "var(--border)",
+                boxShadow: searchFocused ? "0 0 0 3px var(--input-focus)" : "none",
+              }}
+              transition={{ duration: 0.15 }}
+              className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl"
+              style={{ background: "var(--surface-alt)", border: "1px solid var(--border)" }}
+            >
+              <Search className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "var(--text-muted)" }} />
+              <input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                onFocus={() => setSearchFocused(true)}
+                onBlur={() => setSearchFocused(false)}
+                placeholder="Rechercher dans les favoris…"
+                className="flex-1 bg-transparent text-[13px] outline-none"
+                style={{ color: "var(--text)", caretColor: "var(--accent)" }}
+              />
+              <AnimatePresence>
+                {search && (
+                  <motion.button
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                    onClick={() => setSearch("")}
+                    style={{ color: "var(--text-muted)" }}
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </motion.button>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          )}
         </div>
 
-        {/* Search */}
-        {bookmarks.length > 0 && (
-          <div className="relative">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--text-muted)" }} />
-            <input
-              value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Rechercher…"
-              className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border focus:outline-none"
-              style={{ background: "var(--surface)", borderColor: "var(--border)", color: "var(--text)" }}
-            />
-          </div>
-        )}
+        {/* ── Content ── */}
+        <div className="pb-24 space-y-2 pt-2">
 
-        {/* List */}
-        {loading ? (
-          <div className="flex justify-center py-12">
-            <Loader2 className="animate-spin" style={{ color: "var(--text-muted)" }} />
-          </div>
-        ) : filtered.length === 0 ? (
-          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-            className="text-center py-16 space-y-4">
-            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto"
-              style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-              <Bookmark size={28} style={{ color: "var(--text-muted)", opacity: 0.5 }} />
+          {/* Loading */}
+          {(loading || authLoading) && (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="w-5 h-5 animate-spin" style={{ color: "var(--text-muted)" }} />
             </div>
-            <div className="space-y-1.5">
-              <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>
-                {search ? "Aucun résultat" : "Aucun favori"}
-              </p>
-              <p className="text-xs max-w-xs mx-auto" style={{ color: "var(--text-muted)" }}>
-                {search ? "Essayez un autre terme de recherche" : "Appuyez sur 🔖 pendant un quiz pour sauvegarder une question"}
-              </p>
+          )}
+
+          {/* Not logged in */}
+          {!authLoading && !user && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-center py-16 space-y-4"
+            >
+              <div
+                className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto"
+                style={{ background: "var(--surface-alt)", border: "1px solid var(--border)" }}
+              >
+                <LogIn className="w-6 h-6" style={{ color: "var(--text-muted)" }} />
+              </div>
+              <div className="space-y-1">
+                <p className="text-[15px] font-semibold" style={{ color: "var(--text)" }}>
+                  Connecte-toi pour voir tes favoris
+                </p>
+                <p className="text-[13px]" style={{ color: "var(--text-muted)" }}>
+                  Sauvegarde les questions difficiles pour les revoir plus tard.
+                </p>
+              </div>
+              <Link
+                href="/auth"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-semibold"
+                style={{ background: "var(--accent)", color: "#fff" }}
+              >
+                Se connecter
+              </Link>
+            </motion.div>
+          )}
+
+          {/* Empty state */}
+          {!loading && !authLoading && user && bookmarks.length === 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-center py-16 space-y-4"
+            >
+              <div
+                className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto"
+                style={{ background: "var(--surface-alt)", border: "1px solid var(--border)" }}
+              >
+                <Bookmark className="w-6 h-6" style={{ color: "var(--text-muted)" }} />
+              </div>
+              <div className="space-y-1">
+                <p className="text-[15px] font-semibold" style={{ color: "var(--text)" }}>
+                  Pas encore de favoris
+                </p>
+                <p className="text-[13px]" style={{ color: "var(--text-muted)" }}>
+                  Appuie sur l'icône marque-page pendant un quiz pour sauvegarder une question.
+                </p>
+              </div>
+              <Link
+                href="/semestres"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-semibold"
+                style={{ background: "var(--surface-alt)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}
+              >
+                <BookOpen className="w-4 h-4" />
+                Commencer un quiz
+              </Link>
+            </motion.div>
+          )}
+
+          {/* Search no results */}
+          {!loading && user && bookmarks.length > 0 && filtered.length === 0 && (
+            <div className="text-center py-12">
+              <p className="text-[14px]" style={{ color: "var(--text-muted)" }}>Aucun résultat pour "{search}"</p>
             </div>
-            {!search && (
-              <button onClick={() => router.push("/semestres")}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold"
-                style={{ background: "var(--text)", color: "var(--bg)" }}>
-                Commencer un QCM
-              </button>
-            )}
-          </motion.div>
-        ) : (
-          <div className="space-y-3">
-            <AnimatePresence>
-              {filtered.map((b, i) => (
+          )}
+
+          {/* Bookmark cards */}
+          <AnimatePresence>
+            {!loading && user && filtered.map((bm, i) => {
+              const q = bm.questions;
+              const activity = q?.activities;
+              const module_ = activity?.modules;
+
+              return (
                 <motion.div
-                  key={b.id}
+                  key={bm.id}
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, x: -20 }}
-                  transition={{ delay: i * 0.03 }}
-                  className="rounded-2xl border p-4 space-y-3"
-                  style={{ background: "var(--surface)", borderColor: "var(--border)" }}
+                  transition={{ delay: i * 0.04, duration: 0.3 }}
+                  layout
                 >
-                  {/* Module badge */}
-                  {b.questions?.activities && (
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-[10px] font-medium px-2 py-0.5 rounded-md border"
-                        style={{ background: "var(--surface-active)", borderColor: "var(--border)", color: "var(--text-muted)" }}>
-                        {b.questions.activities.modules?.nom ?? b.questions.activities.nom}
+                  <div
+                    className="rounded-xl p-4 group relative"
+                    style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
+                  >
+                    {/* Module breadcrumb */}
+                    {(module_ || activity) && (
+                      <div className="flex items-center gap-1.5 mb-2.5">
+                        {module_ && (
+                          <span
+                            className="text-[10px] font-medium px-1.5 py-0.5 rounded-md truncate max-w-[120px]"
+                            style={{ background: "var(--surface-active)", color: "var(--text-muted)" }}
+                          >
+                            {module_.nom}
+                          </span>
+                        )}
+                        {activity && (
+                          <>
+                            <ChevronRight className="w-3 h-3 flex-shrink-0" style={{ color: "var(--text-disabled)" }} />
+                            <span
+                              className="text-[10px] font-medium truncate max-w-[140px]"
+                              style={{ color: "var(--text-muted)" }}
+                            >
+                              {activity.nom}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Question text */}
+                    <p
+                      className="text-[13px] leading-relaxed line-clamp-3"
+                      style={{ color: "var(--text-secondary)" }}
+                    >
+                      {q?.texte ?? "Question non disponible"}
+                    </p>
+
+                    {/* Actions */}
+                    <div className="flex items-center justify-between mt-3 pt-3" style={{ borderTop: "1px solid var(--border-subtle)" }}>
+                      <span className="text-[11px]" style={{ color: "var(--text-disabled)" }}>
+                        {new Date(bm.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
                       </span>
-                      <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>
-                        {new Date(b.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        {activity?.id && (
+                          <Link
+                            href={`/quiz/${activity.id}`}
+                            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] font-medium transition-all"
+                            style={{
+                              background: "var(--accent-subtle)",
+                              color: "var(--accent)",
+                              border: "1px solid var(--accent-border)",
+                            }}
+                          >
+                            <BookOpen className="w-3 h-3" />
+                            Réviser
+                          </Link>
+                        )}
+                        <button
+                          onClick={() => removeBookmark(bm.id, bm.question_id)}
+                          disabled={removing === bm.id}
+                          className="p-1.5 rounded-lg transition-all"
+                          style={{ color: "var(--text-muted)" }}
+                          title="Retirer des favoris"
+                        >
+                          {removing === bm.id
+                            ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            : <Trash2 className="w-3.5 h-3.5" />}
+                        </button>
+                      </div>
                     </div>
-                  )}
-
-                  {/* Question preview */}
-                  <div className="line-clamp-3">
-                    <RichText text={b.questions?.texte ?? ""} />
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex items-center gap-2 pt-1">
-                    <button
-                      onClick={() => router.push(`/quiz/${b.questions?.activity_id}`)}
-                      className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold border transition-all"
-                      style={{ borderColor: "var(--border)", color: "var(--text)", background: "var(--surface-alt)" }}
-                    >
-                      Réviser <ArrowRight size={12} />
-                    </button>
-                    <button
-                      onClick={() => removeBookmark(b.id, b.question_id)}
-                      disabled={removing === b.question_id}
-                      className="p-2 rounded-xl border transition-all hover:border-red-500/30 hover:bg-red-500/5 disabled:opacity-50"
-                      style={{ borderColor: "var(--border)" }}
-                      title="Retirer des favoris"
-                    >
-                      {removing === b.question_id
-                        ? <Loader2 size={14} className="animate-spin" style={{ color: "var(--text-muted)" }} />
-                        : <BookmarkX size={14} style={{ color: "rgb(239,68,68)" }} />
-                      }
-                    </button>
                   </div>
                 </motion.div>
-              ))}
-            </AnimatePresence>
-          </div>
-        )}
+              );
+            })}
+          </AnimatePresence>
+        </div>
       </div>
-    </div>
+    </main>
   );
 }

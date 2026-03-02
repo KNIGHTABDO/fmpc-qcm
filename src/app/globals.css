@@ -83,6 +83,11 @@
   /* ── Scrollbar ── */
   --scrollbar-thumb: rgba(255, 255, 255, 0.10);
   --scrollbar-thumb-hover: rgba(255, 255, 255, 0.18);
+  /* ── Extra tokens for responsive UI ── */
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --chat-sidebar-width: 260px;
+
 
   /* ── Skeleton ── */
   --skeleton-from: rgba(255, 255, 255, 0.04);

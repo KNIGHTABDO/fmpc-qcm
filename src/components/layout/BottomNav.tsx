@@ -1,216 +1,186 @@
 "use client";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Home, BookOpen, Sparkles, Trophy, Grid3x3,
-  BarChart2, Bookmark, Users2, Layers, Mic, Award, User, Settings, X,
-  GraduationCap
+  BarChart2, Bookmark, Award, User, Settings,
+  Layers, GraduationCap, Mic, Users2, X
 } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 
-// ── Primary bar (always visible, 5 items max on mobile) ─────────────
-const PRIMARY_NAV = [
-  { href: "/",           icon: Home,     label: "Accueil"  },
-  { href: "/semestres",  icon: BookOpen, label: "QCM"      },
-  { href: "/chatwithai", icon: Sparkles, label: "Chat IA", accent: true },
-  { href: "/leaderboard",icon: Trophy,   label: "Top"      },
-  { href: "/__more__",   icon: Grid3x3,  label: "Plus", isMore: true },
+const PRIMARY_TABS = [
+  { href: "/semestres", icon: Home,     label: "Accueil" },
+  { href: "/chatwithai",icon: Sparkles, label: "Chat IA", accent: true },
+  { href: "/leaderboard",icon: Trophy,  label: "Classement" },
+  { href: "/bookmarks", icon: Bookmark, label: "Favoris" },
+  { href: "/more",      icon: Grid3x3,  label: "Plus",    isMore: true },
 ];
 
-// ── More drawer grid ─────────────────────────────────────────────────
-const MORE_NAV = [
-  { href: "/flashcards",   icon: Layers,     label: "Flashcards"    },
-  { href: "/revision",     icon: GraduationCap, label: "Révision"   },
-  { href: "/study-rooms",  icon: Users2,     label: "Salles"        },
-  { href: "/stats",        icon: BarChart2,  label: "Stats"         },
-  { href: "/bookmarks",    icon: Bookmark,   label: "Favoris"       },
-  { href: "/certificates", icon: Award,      label: "Certificats"   },
-  { href: "/profil",       icon: User,       label: "Profil"        },
-  { href: "/settings",     icon: Settings,   label: "Paramètres"    },
+const MORE_ITEMS = [
+  { href: "/flashcards",  icon: Layers,        label: "Flashcards" },
+  { href: "/revision",    icon: GraduationCap, label: "Révision ciblée" },
+  { href: "/voice",       icon: Mic,           label: "Mode vocal" },
+  { href: "/study-rooms", icon: Users2,        label: "Salles d'étude" },
+  { href: "/stats",       icon: BarChart2,     label: "Statistiques" },
+  { href: "/certificates",icon: Award,         label: "Certificats" },
+  { href: "/profile",     icon: User,          label: "Profil" },
+  { href: "/settings",    icon: Settings,      label: "Paramètres" },
 ];
 
 export function BottomNav() {
   const path = usePathname();
-  const [open, setOpen] = useState(false);
-  const sheetRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+  const [moreOpen, setMoreOpen] = useState(false);
 
-  // Close drawer on route change
-  useEffect(() => { setOpen(false); }, [path]);
+  // Close more sheet on navigation
+  useEffect(() => { setMoreOpen(false); }, [path]);
 
-  // Close on outside click
+  // Close on back button / escape
   useEffect(() => {
-    if (!open) return;
-    const handler = (e: MouseEvent | TouchEvent) => {
-      if (sheetRef.current && !sheetRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    document.addEventListener("touchstart", handler);
-    return () => {
-      document.removeEventListener("mousedown", handler);
-      document.removeEventListener("touchstart", handler);
-    };
-  }, [open]);
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setMoreOpen(false); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
 
   const isActive = (href: string) =>
-    href === "/" ? path === "/" : path === href || path.startsWith(href + "/");
+    href === "/semestres"
+      ? path === "/semestres" || path === "/"
+      : path === href || path.startsWith(href + "/");
 
-  const moreActive = MORE_NAV.some((i) => isActive(i.href));
+  const anyMoreActive = MORE_ITEMS.some(item => isActive(item.href));
 
   return (
     <>
-      {/* ── Backdrop ── */}
+      {/* ── More sheet overlay ── */}
       <AnimatePresence>
-        {open && (
-          <motion.div
-            key="backdrop"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="lg:hidden fixed inset-0 z-40"
-            style={{ background: "var(--overlay)", backdropFilter: "blur(4px)", WebkitBackdropFilter: "blur(4px)" }}
-          />
-        )}
-      </AnimatePresence>
+        {moreOpen && (
+          <>
+            <motion.div
+              key="overlay"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 z-40 lg:hidden"
+              style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)", WebkitBackdropFilter: "blur(4px)" }}
+              onClick={() => setMoreOpen(false)}
+            />
+            <motion.div
+              key="sheet"
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", stiffness: 400, damping: 40, mass: 0.8 }}
+              className="fixed left-0 right-0 z-50 lg:hidden rounded-t-2xl overflow-hidden"
+              style={{
+                bottom: 0,
+                background: "var(--bg-secondary)",
+                border: "1px solid var(--border-strong)",
+                borderBottom: "none",
+                paddingBottom: "max(24px, env(safe-area-inset-bottom))",
+              }}
+            >
+              {/* Handle */}
+              <div className="flex justify-center pt-3 pb-2">
+                <div className="w-10 h-1 rounded-full" style={{ background: "var(--border-strong)" }} />
+              </div>
 
-      {/* ── Bottom sheet (More) ── */}
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            ref={sheetRef}
-            key="sheet"
-            initial={{ y: "100%", opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: "100%", opacity: 0 }}
-            transition={{ type: "spring", stiffness: 400, damping: 40, mass: 0.8 }}
-            className="lg:hidden fixed bottom-0 left-0 right-0 z-50 rounded-t-2xl overflow-hidden"
-            style={{
-              background: "var(--bg-secondary)",
-              border: "1px solid var(--border)",
-              borderBottom: "none",
-              paddingBottom: "max(24px, env(safe-area-inset-bottom))",
-            }}
-          >
-            {/* Sheet handle */}
-            <div className="flex justify-center pt-3 pb-1">
-              <div className="w-8 h-1 rounded-full" style={{ background: "var(--border-strong)" }} />
-            </div>
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 pb-4">
+                <p className="text-[15px] font-bold" style={{ color: "var(--text)" }}>Tout</p>
+                <button
+                  onClick={() => setMoreOpen(false)}
+                  className="p-2 rounded-xl"
+                  style={{ background: "var(--surface-alt)", color: "var(--text-muted)", border: "1px solid var(--border)" }}
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
 
-            {/* Close button */}
-            <div className="flex items-center justify-between px-4 py-2">
-              <p className="text-[13px] font-semibold" style={{ color: "var(--text-secondary)" }}>
-                Plus d'options
-              </p>
-              <button
-                onClick={() => setOpen(false)}
-                className="w-7 h-7 rounded-full flex items-center justify-center"
-                style={{ background: "var(--surface-alt)" }}
-              >
-                <X className="w-3.5 h-3.5" style={{ color: "var(--text-muted)" }} />
-              </button>
-            </div>
-
-            {/* Grid */}
-            <div className="grid grid-cols-4 gap-1 px-3 pb-2">
-              {MORE_NAV.map((item) => {
-                const active = isActive(item.href);
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className="flex flex-col items-center gap-1.5 py-3 px-1 rounded-xl transition-all duration-150"
-                    style={{
-                      background: active ? "var(--nav-item-active)" : "transparent",
-                    }}
-                    onClick={() => setOpen(false)}
-                  >
-                    <item.icon
-                      className="w-5 h-5"
-                      style={{ color: active ? "var(--accent)" : "var(--text-secondary)" }}
-                    />
-                    <span
-                      className="text-[10px] font-medium text-center leading-tight"
-                      style={{ color: active ? "var(--accent)" : "var(--text-muted)" }}
+              {/* Grid */}
+              <div className="px-4 grid grid-cols-4 gap-2">
+                {MORE_ITEMS.map(item => {
+                  const active = isActive(item.href);
+                  const Icon = item.icon;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setMoreOpen(false)}
+                      className="flex flex-col items-center gap-1.5 py-3.5 rounded-xl transition-all active:scale-95"
+                      style={{
+                        background: active ? "var(--surface-active)" : "var(--surface-alt)",
+                        border: `1px solid ${active ? "var(--border-strong)" : "var(--border)"}`,
+                      }}
                     >
-                      {item.label}
-                    </span>
-                  </Link>
-                );
-              })}
-            </div>
-          </motion.div>
+                      <Icon
+                        className="w-5 h-5"
+                        style={{ color: active ? "var(--accent)" : "var(--text-secondary)" }}
+                      />
+                      <span
+                        className="text-[10px] font-medium text-center leading-tight"
+                        style={{ color: active ? "var(--text)" : "var(--text-muted)" }}
+                      >
+                        {item.label}
+                      </span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
 
-      {/* ── Fixed bottom bar ── */}
+      {/* ── Bottom tab bar ── */}
       <nav
-        className="lg:hidden fixed bottom-0 left-0 right-0 z-50"
+        className="fixed bottom-0 left-0 right-0 z-30 lg:hidden"
         style={{
           background: "var(--nav-bg)",
           borderTop: "1px solid var(--nav-border)",
-          paddingBottom: "max(8px, env(safe-area-inset-bottom))",
+          paddingBottom: "env(safe-area-inset-bottom, 0px)",
         }}
       >
-        <div className="flex items-center justify-around px-1 pt-1.5 pb-0.5">
-          {PRIMARY_NAV.map((item) => {
-            if ((item as { isMore?: boolean }).isMore) {
+        <div className="flex items-stretch h-14">
+          {PRIMARY_TABS.map(tab => {
+            const Icon = tab.icon;
+
+            if (tab.isMore) {
+              const active = anyMoreActive || moreOpen;
               return (
                 <button
                   key="more"
-                  onClick={() => setOpen((v) => !v)}
-                  className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl min-w-[52px] transition-all duration-150"
-                  style={{
-                    background: open || moreActive ? "var(--nav-item-active)" : "transparent",
-                  }}
+                  onClick={() => setMoreOpen(v => !v)}
+                  className="flex-1 flex flex-col items-center justify-center gap-0.5 transition-all active:scale-95"
+                  style={{ color: active ? "var(--accent)" : "var(--nav-text)" }}
                 >
-                  <Grid3x3
-                    className="w-[22px] h-[22px]"
-                    style={{ color: open || moreActive ? "var(--text)" : "var(--nav-text)" }}
-                  />
-                  <span
-                    className="text-[10px] font-medium"
-                    style={{ color: open || moreActive ? "var(--text)" : "var(--nav-text)" }}
-                  >
-                    Plus
-                  </span>
+                  <Icon className="w-5 h-5" />
+                  <span className="text-[9px] font-medium">{tab.label}</span>
                 </button>
               );
             }
 
-            const active = isActive(item.href);
-            const isAccent = (item as { accent?: boolean }).accent;
-
+            const active = isActive(tab.href);
             return (
               <Link
-                key={item.href}
-                href={item.href}
-                className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl min-w-[52px] transition-all duration-150"
-                style={{
-                  background: active ? "var(--nav-item-active)" : "transparent",
-                }}
+                key={tab.href}
+                href={tab.href}
+                className="flex-1 flex flex-col items-center justify-center gap-0.5 transition-all active:scale-95 relative"
+                style={{ color: active ? (tab.accent ? "var(--accent)" : "var(--accent)") : "var(--nav-text)" }}
               >
-                <item.icon
-                  className="w-[22px] h-[22px]"
-                  style={{
-                    color: active && isAccent ? "var(--accent)"
-                         : active ? "var(--nav-text-active)"
-                         : "var(--nav-text)",
-                  }}
-                />
-                <span
-                  className="text-[10px] font-medium"
-                  style={{
-                    color: active && isAccent ? "var(--accent)"
-                         : active ? "var(--nav-text-active)"
-                         : "var(--nav-text)",
-                  }}
-                >
-                  {item.label}
-                </span>
+                {/* Active dot */}
+                {active && (
+                  <motion.div
+                    layoutId="bottom-nav-dot"
+                    className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full"
+                    style={{ background: "var(--accent)" }}
+                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                  />
+                )}
+                <Icon className={cn("w-5 h-5", active && "scale-110")} style={{ transition: "transform 0.15s" }} />
+                <span className="text-[9px] font-medium">{tab.label}</span>
               </Link>
             );
           })}
