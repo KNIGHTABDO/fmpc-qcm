@@ -108,7 +108,7 @@ function SemestresPageInner() {
       .maybeSingle()
       .then(({ data }) => {
         if (data?.activity_id && data.activities) {
-          const act = data.activities as { nom: string; modules?: { nom: string } | null };
+          const act = (Array.isArray(data.activities) ? data.activities[0] : data.activities) as { nom: string; modules?: { nom: string } | null };
           setLastSession({
             activity_id: data.activity_id,
             activity_name: act.nom,
