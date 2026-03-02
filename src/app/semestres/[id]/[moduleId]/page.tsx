@@ -11,13 +11,13 @@ type Activity = {
   id: number;
   nom: string;
   total_questions: number;
-  source?: string;
+  chapitre?: string;
 };
 
 type ModuleInfo = {
   id: number;
   nom: string;
-  semestre_id: string;
+  semester_id: string;
 };
 
 type Progress = {
@@ -45,8 +45,8 @@ export default function ModuleActivitiesPage({
       const modId = parseInt(moduleId);
 
       const [{ data: mod }, { data: acts }] = await Promise.all([
-        supabase.from("modules").select("id, nom, semestre_id").eq("id", modId).maybeSingle(),
-        supabase.from("activities").select("id, nom, total_questions, source").eq("module_id", modId).order("id"),
+        supabase.from("modules").select("id, nom, semester_id").eq("id", modId).maybeSingle(),
+        supabase.from("activities").select("id, nom, total_questions, chapitre").eq("module_id", modId).order("id"),
       ]);
 
       setModuleInfo(mod);
@@ -212,12 +212,12 @@ export default function ModuleActivitiesPage({
                           <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>
                             {activity.total_questions} question{activity.total_questions !== 1 ? "s" : ""}
                           </span>
-                          {activity.source && (
+                          {activity.chapitre && (
                             <span
                               className="text-[10px] font-medium px-1.5 py-0.5 rounded"
                               style={{ background: "var(--surface-active)", color: "var(--text-muted)" }}
                             >
-                              {activity.source}
+                              {activity.chapitre}
                             </span>
                           )}
                           {accuracy !== null && (
