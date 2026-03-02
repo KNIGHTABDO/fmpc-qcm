@@ -2,7 +2,7 @@
 import { motion, useInView } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
-import { useRef } from "react";
+import { useRef, useState, useEffect } from "react";
 import {
   Brain, Zap, BarChart2, MessageCircle, Shield, Sparkles, ArrowRight,
   BookOpen, TrendingUp, Flame,
