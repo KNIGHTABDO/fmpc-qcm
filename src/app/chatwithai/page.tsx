@@ -617,7 +617,7 @@ export default function ChatWithAIPage() {
               key="hbdrop"
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               transition={{ duration: 0.18 }}
-              className="fixed inset-0 z-30"
+              className="fixed inset-0 z-[60]"
               style={{ background: "rgba(0,0,0,0.5)" }}
               onClick={() => setSidebarOpen(false)}
             />
@@ -625,7 +625,7 @@ export default function ChatWithAIPage() {
               key="hbpanel"
               initial={{ x: -280 }} animate={{ x: 0 }} exit={{ x: -280 }}
               transition={{ type: "spring", stiffness: 380, damping: 38, mass: 0.8 }}
-              className="fixed left-0 top-0 bottom-0 w-72 z-40 lg:hidden flex flex-col"
+              className="fixed left-0 top-0 bottom-0 w-72 z-[70] flex flex-col"
               style={{
                 background: "var(--surface)",
                 borderRight: "1px solid var(--border)",
