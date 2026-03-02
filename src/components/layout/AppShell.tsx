@@ -10,7 +10,7 @@ import { useAuth } from "../auth/AuthProvider";
 import { supabase } from "@/lib/supabase";
 
 // Pages that render as full-viewport (no sidebar/nav overlay)
-const FULLSCREEN_PREFIXES = ["/quiz", "/auth", "/admin"];
+const FULLSCREEN_PREFIXES = ["/quiz", "/auth", "/admin", "/chatwithai"];
 
 // Pages that are public (no activation check)
 const PUBLIC_PATHS = ["/", "/auth", "/activate", "/admin"];
