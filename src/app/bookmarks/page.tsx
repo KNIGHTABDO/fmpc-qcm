@@ -97,7 +97,6 @@ export default function BookmarksPage() {
             <motion.div
               animate={{
                 borderColor: searchFocused ? "var(--border-strong)" : "var(--border)",
-                boxShadow: searchFocused ? "0 0 0 3px var(--input-focus)" : "none",
               }}
               transition={{ duration: 0.15 }}
               className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl"
@@ -164,7 +163,7 @@ export default function BookmarksPage() {
               <Link
                 href="/auth"
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-semibold"
-                style={{ background: "var(--accent)", color: "#fff" }}
+                style={{ background: "var(--accent)", color: "var(--bg)" }}
               >
                 Se connecter
               </Link>
@@ -189,7 +188,7 @@ export default function BookmarksPage() {
                   Pas encore de favoris
                 </p>
                 <p className="text-[13px]" style={{ color: "var(--text-muted)" }}>
-                  Appuie sur l'icône marque-page pendant un quiz pour sauvegarder une question.
+                  Appuie sur l&apos;icône marque-page pendant un quiz pour sauvegarder une question.
                 </p>
               </div>
               <Link
@@ -206,7 +205,7 @@ export default function BookmarksPage() {
           {/* Search no results */}
           {!loading && user && bookmarks.length > 0 && filtered.length === 0 && (
             <div className="text-center py-12">
-              <p className="text-[14px]" style={{ color: "var(--text-muted)" }}>Aucun résultat pour "{search}"</p>
+              <p className="text-[14px]" style={{ color: "var(--text-muted)" }}>Aucun résultat pour &quot;{search}&quot;</p>
             </div>
           )}
 
@@ -264,7 +263,7 @@ export default function BookmarksPage() {
                     </p>
 
                     {/* Actions */}
-                    <div className="flex items-center justify-between mt-3 pt-3" style={{ borderTop: "1px solid var(--border-subtle)" }}>
+                    <div className="flex items-center justify-between mt-3 pt-3" style={{ borderTop: "1px solid var(--border)" }}>
                       <span className="text-[11px]" style={{ color: "var(--text-disabled)" }}>
                         {new Date(bm.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
                       </span>
