@@ -68,6 +68,25 @@ export async function middleware(req: NextRequest) {
     if (user.email !== ADMIN_EMAIL) {
       return NextResponse.rewrite(new URL("/not-found", req.url));
     }
+    // Admins are always considered activated — skip activation check
+    return res;
+  }
+
+  // Activation check — skip for the activate page itself to avoid redirect loops
+  if (!pathname.startsWith("/activate")) {
+    const { data: activation } = await supabase
+      .from("activation_keys")
+      .select("status")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    const isActivated = activation?.status === "approved";
+    if (!isActivated) {
+      const activateUrl = req.nextUrl.clone();
+      activateUrl.pathname = "/activate";
+      activateUrl.search = "";
+      return NextResponse.redirect(activateUrl);
+    }
   }
 
   return res;
