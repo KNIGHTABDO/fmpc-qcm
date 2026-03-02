@@ -218,7 +218,7 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
       correctionCtx +
       "\n\n## Consigne\n" +
       "Explique chaque option avec profondeur pédagogique maximale (mécanisme, physiopatho, formules si nécessaire, valeurs normales, pièges classiques, mnémotechniques).\n" +
-      "Réponds UNIQUEMENT en JSON : [\"letter\":\"A\",\"contenu\":\"...\",\"est_correct\":true,\"why\":\"...\"},...]";
+      "Réponds UNIQUEMENT en JSON strict, sans texte avant ni après : [{\"letter\":\"A\",\"contenu\":\"...\",\"est_correct\":true,\"why\":\"...\"},...]";
     const savedQ = q;
     let full = "";
     try {
