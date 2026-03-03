@@ -131,8 +131,12 @@ async function streamCopilotExplain(prompt: string): Promise<ReadableStream> {
             if (delta.type === "thinking" || delta.thinking) { inThinkingBlock = true; continue; }
             if (delta.type === "text" || delta.type === undefined) inThinkingBlock = false;
             if (inThinkingBlock) continue;
-            const t = delta.content;
-            if (t) { ctrl.enqueue(enc.encode(t)); hasContent = true; }
+            let t = delta.content;
+            if (t) {
+              // Strip inline <think>...</think> blocks that some models emit as text content
+              t = t.replace(/<think>[\s\S]*?<\/think>/g, "").replace(/^\s+/, "");
+              if (t) { ctrl.enqueue(enc.encode(t)); hasContent = true; }
+            }
           } catch { /* skip malformed SSE */ }
         }
       }
