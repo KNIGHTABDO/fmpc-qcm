@@ -1,11 +1,11 @@
 "use client";
-import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Flame, BookOpen, LogIn, Trash2, AlertTriangle, Check, Loader2, Target, TrendingUp, Award } from "lucide-react";
-import { useAuth } from "@/components/auth/AuthProvider";
-import { getUserStats, supabase } from "@/lib/supabase";
-import Link from "next/link";
-import { StatCardSkeleton } from "@/components/ui/Skeleton";
+import { useEffect, useState } from"react";
+import { motion, AnimatePresence } from"framer-motion";
+import { Flame, BookOpen, LogIn, Trash2, AlertTriangle, Check, Loader2, Target, TrendingUp, Award } from"lucide-react";
+import { useAuth } from"@/components/auth/AuthProvider";
+import { getUserStats, supabase } from"@/lib/supabase";
+import Link from"next/link";
+import { StatCardSkeleton } from"@/components/ui/Skeleton";
 
 // ── Activity heatmap (last 12 weeks) ───────────────────────────────
 function ActivityHeatmap({ data }: { data: Record<string, number> }) {
@@ -23,12 +23,12 @@ function ActivityHeatmap({ data }: { data: Record<string, number> }) {
   const maxCount = Math.max(1, ...days.map(d => d.count));
 
   const getColor = (count: number) => {
-    if (count === 0) return "var(--surface-alt)";
+    if (count === 0) return"var(--surface-alt)";
     const intensity = count / maxCount;
-    if (intensity < 0.25) return "rgba(96,165,250,0.25)";
-    if (intensity < 0.5)  return "rgba(96,165,250,0.50)";
-    if (intensity < 0.75) return "rgba(96,165,250,0.75)";
-    return "var(--accent)";
+    if (intensity < 0.25) return"rgba(96,165,250,0.25)";
+    if (intensity < 0.5)  return"rgba(96,165,250,0.50)";
+    if (intensity < 0.75) return"rgba(96,165,250,0.75)";
+    return"var(--accent)";
   };
 
   // Group into weeks of 7 days
@@ -37,7 +37,7 @@ function ActivityHeatmap({ data }: { data: Record<string, number> }) {
     weekGroups.push(days.slice(w * 7, (w + 1) * 7));
   }
 
-  const dayLabels = ["L", "M", "M", "J", "V", "S", "D"];
+  const dayLabels = ["L","M","M","J","V","S","D"];
 
   return (
     <div className="space-y-2">
@@ -46,8 +46,8 @@ function ActivityHeatmap({ data }: { data: Record<string, number> }) {
         <div className="flex flex-col gap-1 pt-0.5 mr-1">
           {dayLabels.map((l, i) => (
             <div key={i} className="w-3 h-3 flex items-center justify-center text-[8px]"
-              style={{ color: "var(--text-muted)" }}>
-              {i % 2 === 0 ? l : ""}
+              style={{ color:"var(--text-muted)" }}>
+              {i % 2 === 0 ? l :""}
             </div>
           ))}
         </div>
@@ -62,9 +62,9 @@ function ActivityHeatmap({ data }: { data: Record<string, number> }) {
                   className="rounded-[3px] cursor-default transition-all duration-150"
                   style={{
                     background: getColor(day.count),
-                    aspectRatio: "1",
+                    aspectRatio:"1",
                     minWidth: 10,
-                    border: "1px solid var(--border-subtle)",
+                    border:"1px solid var(--border-subtle)",
                   }}
                 />
               ))}
@@ -73,12 +73,12 @@ function ActivityHeatmap({ data }: { data: Record<string, number> }) {
         </div>
       </div>
       <div className="flex items-center gap-1.5 justify-end">
-        <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>Moins</span>
+        <span className="text-[10px]" style={{ color:"var(--text-muted)" }}>Moins</span>
         {[0, 0.3, 0.6, 1].map((v, i) => (
           <div key={i} className="w-2.5 h-2.5 rounded-[2px]"
-            style={{ background: v === 0 ? "var(--surface-alt)" : `rgba(96,165,250,${v})` }} />
+            style={{ background: v === 0 ?"var(--surface-alt)" : `rgba(96,165,250,${v})` }} />
         ))}
-        <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>Plus</span>
+        <span className="text-[10px]" style={{ color:"var(--text-muted)" }}>Plus</span>
       </div>
     </div>
   );
@@ -87,7 +87,7 @@ function ActivityHeatmap({ data }: { data: Record<string, number> }) {
 // ── Animated progress ring ─────────────────────────────────────────
 function ProgressRing({
   value, max = 100, size = 72, stroke = 5,
-  color = "var(--accent)", label, sublabel,
+  color ="var(--accent)", label, sublabel,
 }: {
   value: number; max?: number; size?: number; stroke?: number;
   color?: string; label: string; sublabel?: string;
@@ -100,7 +100,7 @@ function ProgressRing({
   return (
     <div className="flex flex-col items-center gap-2">
       <div className="relative" style={{ width: size, height: size }}>
-        <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
+        <svg width={size} height={size} style={{ transform:"rotate(-90deg)" }}>
           <circle cx={size/2} cy={size/2} r={r} fill="none"
             stroke="var(--border)" strokeWidth={stroke} />
           <motion.circle
@@ -110,18 +110,18 @@ function ProgressRing({
             strokeDasharray={circ}
             initial={{ strokeDashoffset: circ }}
             animate={{ strokeDashoffset: offset }}
-            transition={{ duration: 1.2, ease: "easeOut", delay: 0.2 }}
+            transition={{ duration: 1.2, ease:"easeOut", delay: 0.2 }}
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-sm font-bold tabular-nums" style={{ color: "var(--text)" }}>
-            {typeof value === "number" && value > 1000 ? `${Math.round(value/1000)}k` : value.toLocaleString()}
+          <span className="text-sm font-bold tabular-nums" style={{ color:"var(--text)" }}>
+            {typeof value ==="number" && value > 1000 ? `${Math.round(value/1000)}k` : value.toLocaleString()}
           </span>
         </div>
       </div>
       <div className="text-center">
-        <p className="text-[12px] font-semibold" style={{ color: "var(--text)" }}>{label}</p>
-        {sublabel && <p className="text-[10px] mt-0.5" style={{ color: "var(--text-muted)" }}>{sublabel}</p>}
+        <p className="text-[12px] font-semibold" style={{ color:"var(--text)" }}>{label}</p>
+        {sublabel && <p className="text-[10px] mt-0.5" style={{ color:"var(--text-muted)" }}>{sublabel}</p>}
       </div>
     </div>
   );
@@ -140,7 +140,7 @@ export default function StatsPage() {
   async function handleReset() {
     if (!user) return;
     setResetting(true);
-    await fetch("/api/reset-stats", { method: "DELETE" });
+    await fetch("/api/reset-stats", { method:"DELETE" });
     setResetting(false);
     setResetOpen(false);
     setResetDone(true);
@@ -182,7 +182,7 @@ export default function StatsPage() {
       .then(({ data }) => {
         const map = new Map<string, { total: number; correct: number }>();
         (data ?? []).forEach((row: any) => {
-          const name = row.activities?.modules?.nom ?? "Inconnu";
+          const name = row.activities?.modules?.nom ??"Inconnu";
           const existing = map.get(name) ?? { total: 0, correct: 0 };
           map.set(name, {
             total: existing.total + 1,
@@ -200,21 +200,21 @@ export default function StatsPage() {
   const rate = stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0;
 
   const rings = [
-    { value: stats.total, max: Math.max(stats.total, 500), color: "var(--accent)",   label: "Répondues", sublabel: "questions" },
-    { value: rate,        max: 100,                         color: "var(--success)",  label: "Précision",  sublabel: `${stats.correct} correctes` },
-    { value: stats.streak,max: Math.max(stats.streak, 30),  color: "var(--warning)",  label: "Série",      sublabel: "jours" },
+    { value: stats.total, max: Math.max(stats.total, 500), color:"var(--text-muted)",   label:"Répondues", sublabel:"questions" },
+    { value: rate,        max: 100,                         color:"var(--success)",  label:"Précision",  sublabel: `${stats.correct} correctes` },
+    { value: stats.streak,max: Math.max(stats.streak, 30),  color:"var(--warning)",  label:"Série",      sublabel:"jours" },
   ];
 
   return (
-    <main className="min-h-screen pb-safe" style={{ background: "var(--bg)", color: "var(--text)" }}>
+    <main className="min-h-screen pb-safe" style={{ background:"var(--bg)", color:"var(--text)" }}>
       <div className="max-w-2xl mx-auto px-4 pt-6 md:pt-8 space-y-6">
 
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-xl font-bold" style={{ color: "var(--text)" }}>Statistiques</h1>
-              <p className="text-[13px] mt-0.5" style={{ color: "var(--text-muted)" }}>
+              <h1 className="text-xl font-bold" style={{ color:"var(--text)" }}>Statistiques</h1>
+              <p className="text-[13px] mt-0.5" style={{ color:"var(--text-muted)" }}>
                 Ton avancement en détail
               </p>
             </div>
@@ -222,7 +222,7 @@ export default function StatsPage() {
               <button
                 onClick={() => setResetOpen(true)}
                 className="p-2 rounded-xl transition-all"
-                style={{ color: "var(--text-muted)" }}
+                style={{ color:"var(--text-muted)" }}
                 title="Réinitialiser"
               >
                 <Trash2 className="w-4 h-4" />
@@ -230,8 +230,8 @@ export default function StatsPage() {
             )}
             {resetDone && (
               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px]"
-                style={{ background: "var(--success-subtle)", color: "var(--success)" }}>
-                <Check className="w-3.5 h-3.5" /> Réinitialisé
+                style={{ background:"var(--success-subtle)", color:"var(--success)" }}>
+                <Check strokeWidth={1.5} className="w-3.5 h-3.5" /> Réinitialisé
               </div>
             )}
           </div>
@@ -247,12 +247,12 @@ export default function StatsPage() {
         {/* Not logged in */}
         {!loading && !user && (
           <div className="text-center py-12 space-y-3">
-            <LogIn className="w-8 h-8 mx-auto" style={{ color: "var(--text-muted)" }} />
-            <p className="text-[14px]" style={{ color: "var(--text-secondary)" }}>
+            <LogIn className="w-8 h-8 mx-auto" style={{ color:"var(--text-muted)" }} />
+            <p className="text-[14px]" style={{ color:"var(--text-secondary)" }}>
               Connecte-toi pour voir tes stats
             </p>
             <Link href="/auth" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-[13px] font-medium"
-              style={{ background: "var(--accent)", color: "#fff" }}>
+              style={{ background:"var(--accent)", color:"#fff" }}>
               Se connecter
             </Link>
           </div>
@@ -266,7 +266,7 @@ export default function StatsPage() {
             className="space-y-5"
           >
             {/* ── Rings row ── */}
-            <div className="rounded-xl p-4" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+            <div className="rounded-xl p-4" style={{ background:"var(--surface)", border:"1px solid var(--border)" }}>
               <div className="grid grid-cols-3 gap-4">
                 {rings.map((r, i) => (
                   <motion.div
@@ -282,12 +282,12 @@ export default function StatsPage() {
             </div>
 
             {/* ── Activity heatmap ── */}
-            <div className="rounded-xl p-4 space-y-3" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+            <div className="rounded-xl p-4 space-y-3" style={{ background:"var(--surface)", border:"1px solid var(--border)" }}>
               <div className="flex items-center justify-between">
-                <h3 className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>
+                <h3 className="text-[13px] font-semibold" style={{ color:"var(--text)" }}>
                   Activité (12 semaines)
                 </h3>
-                <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>
+                <span className="text-[11px]" style={{ color:"var(--text-muted)" }}>
                   {Object.values(heatmapData).reduce((a, b) => a + b, 0).toLocaleString()} total
                 </span>
               </div>
@@ -296,8 +296,8 @@ export default function StatsPage() {
 
             {/* ── Module breakdown ── */}
             {moduleStats.length > 0 && (
-              <div className="rounded-xl p-4 space-y-3" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-                <h3 className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>
+              <div className="rounded-xl p-4 space-y-3" style={{ background:"var(--surface)", border:"1px solid var(--border)" }}>
+                <h3 className="text-[13px] font-semibold" style={{ color:"var(--text)" }}>
                   Par module
                 </h3>
                 <div className="space-y-3">
@@ -309,30 +309,30 @@ export default function StatsPage() {
                       transition={{ delay: i * 0.05 }}
                     >
                       <div className="flex items-center justify-between mb-1.5">
-                        <p className="text-[12px] font-medium truncate flex-1 mr-2" style={{ color: "var(--text-secondary)" }}>
+                        <p className="text-[12px] font-medium truncate flex-1 mr-2" style={{ color:"var(--text-secondary)" }}>
                           {mod.name}
                         </p>
                         <div className="flex items-center gap-2 flex-shrink-0">
-                          <span className="text-[11px] tabular-nums" style={{ color: "var(--text-muted)" }}>
+                          <span className="text-[11px] tabular-nums" style={{ color:"var(--text-muted)" }}>
                             {mod.total}q
                           </span>
                           <span
                             className="text-[11px] font-bold tabular-nums"
-                            style={{ color: mod.rate >= 70 ? "var(--success)" : mod.rate >= 50 ? "var(--warning)" : "var(--error)" }}
+                            style={{ color: mod.rate >= 70 ?"var(--success)" : mod.rate >= 50 ?"var(--warning)" :"var(--error)" }}
                           >
                             {mod.rate}%
                           </span>
                         </div>
                       </div>
-                      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "var(--border)" }}>
+                      <div className="h-1.5 rounded-full overflow-hidden" style={{ background:"var(--border)" }}>
                         <motion.div
                           className="h-full rounded-full"
                           style={{
-                            background: mod.rate >= 70 ? "var(--success)" : mod.rate >= 50 ? "var(--warning)" : "var(--error)",
+                            background: mod.rate >= 70 ?"var(--success)" : mod.rate >= 50 ?"var(--warning)" :"var(--error)",
                           }}
                           initial={{ width: 0 }}
                           animate={{ width: `${mod.rate}%` }}
-                          transition={{ delay: i * 0.05 + 0.2, duration: 0.8, ease: "easeOut" }}
+                          transition={{ delay: i * 0.05 + 0.2, duration: 0.8, ease:"easeOut" }}
                         />
                       </div>
                     </motion.div>
@@ -344,13 +344,13 @@ export default function StatsPage() {
             {/* ── Empty state ── */}
             {stats.total === 0 && (
               <div className="text-center py-12 space-y-3">
-                <BookOpen className="w-8 h-8 mx-auto" style={{ color: "var(--text-muted)" }} />
-                <p className="text-[14px]" style={{ color: "var(--text-secondary)" }}>
+                <BookOpen strokeWidth={1.5} className="w-8 h-8 mx-auto" style={{ color:"var(--text-muted)" }} />
+                <p className="text-[14px]" style={{ color:"var(--text-secondary)" }}>
                   Commence à répondre aux QCM pour voir tes statistiques.
                 </p>
                 <Link href="/semestres"
                   className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-[13px] font-medium"
-                  style={{ background: "var(--accent)", color: "#fff" }}>
+                  style={{ background:"var(--accent)", color:"#fff" }}>
                   Aller aux QCM
                 </Link>
               </div>
@@ -365,27 +365,27 @@ export default function StatsPage() {
               key="overlay"
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
-              style={{ background: "var(--overlay)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}
+              style={{ background:"var(--overlay)", backdropFilter:"blur(8px)", WebkitBackdropFilter:"blur(8px)" }}
               onClick={() => setResetOpen(false)}
             >
               <motion.div
                 initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
                 exit={{ y: 40, opacity: 0 }}
-                transition={{ type: "spring", stiffness: 380, damping: 38 }}
+                transition={{ type:"spring", stiffness: 380, damping: 38 }}
                 className="w-full max-w-sm p-5 rounded-2xl space-y-4"
-                style={{ background: "var(--bg-secondary)", border: "1px solid var(--border-strong)" }}
+                style={{ background:"var(--bg-secondary)", border:"1px solid var(--border-strong)" }}
                 onClick={e => e.stopPropagation()}
               >
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                    style={{ background: "var(--error-subtle)", border: "1px solid var(--error-border)" }}>
-                    <AlertTriangle className="w-5 h-5" style={{ color: "var(--error)" }} />
+                    style={{ background:"var(--error-subtle)", border:"1px solid var(--error-border)" }}>
+                    <AlertTriangle strokeWidth={1.5} className="w-5 h-5" style={{ color:"var(--error)" }} />
                   </div>
                   <div>
-                    <p className="text-[14px] font-bold" style={{ color: "var(--text)" }}>
+                    <p className="text-[14px] font-bold" style={{ color:"var(--text)" }}>
                       Réinitialiser les stats ?
                     </p>
-                    <p className="text-[12px]" style={{ color: "var(--text-muted)" }}>
+                    <p className="text-[12px]" style={{ color:"var(--text-muted)" }}>
                       Cette action est irréversible.
                     </p>
                   </div>
@@ -394,7 +394,7 @@ export default function StatsPage() {
                   <button
                     onClick={() => setResetOpen(false)}
                     className="flex-1 py-2.5 rounded-xl text-[13px] font-medium"
-                    style={{ background: "var(--surface-alt)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}
+                    style={{ background:"var(--surface-alt)", color:"var(--text-secondary)", border:"1px solid var(--border)" }}
                   >
                     Annuler
                   </button>
@@ -402,10 +402,10 @@ export default function StatsPage() {
                     onClick={handleReset}
                     disabled={resetting}
                     className="flex-1 py-2.5 rounded-xl text-[13px] font-semibold flex items-center justify-center gap-1.5"
-                    style={{ background: "var(--error)", color: "#fff" }}
+                    style={{ background:"var(--error)", color:"#fff" }}
                   >
-                    {resetting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                    {resetting ? "..." : "Réinitialiser"}
+                    {resetting ? <Loader2 strokeWidth={1.5} className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                    {resetting ?"..." :"Réinitialiser"}
                   </button>
                 </div>
               </motion.div>
