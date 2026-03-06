@@ -112,7 +112,7 @@ export default function SemestreModulesPage({ params }: { params: Promise<{ id: 
               className="p-2 rounded-xl flex-shrink-0 transition-all"
               style={{ color: "var(--text-muted)", background: "var(--surface-alt)", border: "1px solid var(--border)" }}
             >
-              <ArrowLeft className="w-4 h-4" />
+              <ArrowLeft strokeWidth={1.5} className="w-4 h-4" />
             </button>
             <div className="flex-1 min-w-0">
               <h1 className="text-[15px] font-bold truncate" style={{ color: "var(--text)" }}>
@@ -126,7 +126,7 @@ export default function SemestreModulesPage({ params }: { params: Promise<{ id: 
             </div>
             {!loading && totalQuestions > 0 && (
               <div className="flex-shrink-0 text-right">
-                <p className="text-[13px] font-bold tabular-nums" style={{ color: "var(--accent)" }}>
+                <p className="text-[13px] font-bold tabular-nums" style={{ color: "var(--text-muted)" }}>
                   {overallPct}%
                 </p>
                 <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>
@@ -159,7 +159,7 @@ export default function SemestreModulesPage({ params }: { params: Promise<{ id: 
               className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl"
               style={{ background: "var(--surface-alt)", border: "1px solid var(--border)" }}
             >
-              <Search className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "var(--text-muted)" }} />
+              <Search strokeWidth={1.5} className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "var(--text-muted)" }} />
               <input
                 value={search}
                 onChange={e => setSearch(e.target.value)}
@@ -190,7 +190,7 @@ export default function SemestreModulesPage({ params }: { params: Promise<{ id: 
         <div className="pb-24 space-y-2 pt-2">
           {loading && (
             <div className="flex items-center justify-center py-16">
-              <Loader2 className="w-5 h-5 animate-spin" style={{ color: "var(--text-muted)" }} />
+              <Loader2 strokeWidth={1.5} className="w-5 h-5 animate-spin" style={{ color: "var(--text-muted)" }} />
             </div>
           )}
 
@@ -222,7 +222,7 @@ export default function SemestreModulesPage({ params }: { params: Promise<{ id: 
                   whileHover={{ scale: 1.01 }}
                   whileTap={{ scale: 0.98 }}
                 >
-                  <Link
+                  <Link strokeWidth={1.5}
                     href={`/semestres/${id}/${mod.id}`}
                     className="block rounded-xl p-4 transition-all duration-150 group"
                     style={{
@@ -241,10 +241,10 @@ export default function SemestreModulesPage({ params }: { params: Promise<{ id: 
                         }}
                       >
                         {isComplete
-                          ? <CheckCircle className="w-4 h-4" style={{ color: "var(--success)" }} />
+                          ? <CheckCircle strokeWidth={1.5} className="w-4 h-4" style={{ color: "var(--success)" }} />
                           : answered > 0
-                          ? <BookOpen className="w-4 h-4" style={{ color: "var(--accent)" }} />
-                          : <BookOpen className="w-4 h-4" style={{ color: "var(--text-muted)" }} />
+                          ? <BookOpen strokeWidth={1.5} className="w-4 h-4" style={{ color: "var(--text-muted)" }} />
+                          : <BookOpen strokeWidth={1.5} className="w-4 h-4" style={{ color: "var(--text-muted)" }} />
                         }
                       </div>
 
@@ -253,7 +253,7 @@ export default function SemestreModulesPage({ params }: { params: Promise<{ id: 
                           <p className="text-[13px] font-semibold leading-snug" style={{ color: "var(--text)" }}>
                             {mod.nom}
                           </p>
-                          <ChevronRight
+                          <ChevronRight strokeWidth={1.5}
                             className="w-4 h-4 flex-shrink-0 mt-0.5 transition-transform duration-150 group-hover:translate-x-0.5"
                             style={{ color: "var(--text-muted)" }}
                           />
