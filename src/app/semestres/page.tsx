@@ -219,7 +219,7 @@ function SemestresPageInner() {
                 icon: BookOpen,
                 value: stats.total.toLocaleString(),
                 label: "Réponses",
-                color: "var(--accent)",
+                color: "var(--text-muted)",
                 subtle: "var(--accent-subtle)",
                 border: "var(--accent-border)",
               },
@@ -250,12 +250,12 @@ function SemestresPageInner() {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.35, delay: 0.10 }}
             >
-              <Link
+              <Link strokeWidth={1.5}
                 href={`/quiz/${lastSession.activity_id}`}
                 className="flex items-center justify-between px-4 py-3.5 rounded-xl transition-all duration-150"
                 style={{
-                  background: "var(--accent-subtle)",
-                  border: "1px solid var(--accent-border)",
+                  background: "var(--surface-alt)",
+                  border: "1px solid var(--border)",
                 }}
               >
                 <div className="flex items-center gap-3 min-w-0">
@@ -263,10 +263,10 @@ function SemestresPageInner() {
                     className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
                     style={{ background: "var(--accent)", }}
                   >
-                    <Clock className="w-4 h-4 text-white" />
+                    <Clock strokeWidth={1.5} className="w-4 h-4 text-white" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[12px]" style={{ color: "var(--accent)" }}>Continuer</p>
+                    <p className="text-[12px]" style={{ color: "var(--text-muted)" }}>Continuer</p>
                     <p className="text-[13px] font-semibold truncate" style={{ color: "var(--text)" }}>
                       {lastSession.activity_name}
                     </p>
@@ -277,7 +277,7 @@ function SemestresPageInner() {
                     )}
                   </div>
                 </div>
-                <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: "var(--accent)" }} />
+                <ChevronRight strokeWidth={1.5} className="w-4 h-4 flex-shrink-0" style={{ color: "var(--text-muted)" }} />
               </Link>
             </motion.div>
           )}
@@ -290,22 +290,22 @@ function SemestresPageInner() {
           transition={{ duration: 0.35, delay: 0.12 }}
           className="grid grid-cols-2 gap-2"
         >
-          <Link
+          <Link strokeWidth={1.5}
             href="/chatwithai"
             className="flex items-center gap-2.5 px-3 py-3 rounded-xl transition-all duration-150"
             style={{ background: "var(--surface-alt)", border: "1px solid var(--border)" }}
           >
-            <Sparkles className="w-4 h-4 flex-shrink-0" style={{ color: "var(--accent)" }} />
+            <Sparkles strokeWidth={1.5} className="w-4 h-4 flex-shrink-0" style={{ color: "var(--text-muted)" }} />
             <span className="text-[13px] font-medium" style={{ color: "var(--text-secondary)" }}>
               Chat IA
             </span>
           </Link>
-          <Link
+          <Link strokeWidth={1.5}
             href="/flashcards"
             className="flex items-center gap-2.5 px-3 py-3 rounded-xl transition-all duration-150"
             style={{ background: "var(--surface-alt)", border: "1px solid var(--border)" }}
           >
-            <BookOpen className="w-4 h-4 flex-shrink-0" style={{ color: "var(--success)" }} />
+            <BookOpen strokeWidth={1.5} className="w-4 h-4 flex-shrink-0" style={{ color: "var(--success)" }} />
             <span className="text-[13px] font-medium" style={{ color: "var(--text-secondary)" }}>
               Flashcards
             </span>
@@ -374,7 +374,7 @@ function SemestresPageInner() {
               const isUserSem = userSNum === semNum;
               return (
                 <motion.div key={sem.semestre_id} variants={item}>
-                  <Link
+                  <Link strokeWidth={1.5}
                     href={href}
                     className="flex items-center justify-between px-4 py-3.5 rounded-xl transition-all duration-150 group"
                     style={{
@@ -405,8 +405,8 @@ function SemestresPageInner() {
                             <span
                               className="text-[10px] font-medium px-1.5 py-0.5 rounded"
                               style={{
-                                background: "var(--accent-subtle)",
-                                color: "var(--accent)",
+                                background: "var(--surface-alt)",
+                                color: "var(--text-muted)",
                               }}
                             >
                               Mon sem.
@@ -415,7 +415,7 @@ function SemestresPageInner() {
                         </div>
                       </div>
                     </div>
-                    <ChevronRight
+                    <ChevronRight strokeWidth={1.5}
                       className="w-4 h-4 flex-shrink-0 transition-transform duration-150 group-hover:translate-x-0.5"
                       style={{ color: "var(--text-muted)" }}
                     />
