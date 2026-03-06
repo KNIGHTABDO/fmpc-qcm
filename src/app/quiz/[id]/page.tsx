@@ -606,7 +606,7 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
         <div className="rounded-2xl border p-4 space-y-2" style={{ background: "var(--surface)", borderColor: "var(--surface-active)" }}>
           {q.source_question && (
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-[10px] font-medium px-2 py-0.5 rounded-md" style={{ background: "var(--surface-alt)", color: "var(--text-muted)", border: "1px solid var(--border)">{q.source_question}</span>
+              <span className="text-[10px] font-medium px-2 py-0.5 rounded-md" style={{ background: "var(--surface-alt)", color: "var(--text-muted)", border: "1px solid var(--border)" }}>{q.source_question}</span>
               <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>{q.source_type}</span>
             </div>
           )}
@@ -726,7 +726,7 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
                   <Brain size={12} strokeWidth={1.5} style={{ color: "var(--text-muted)" }} />
                   <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>Explication IA</span>
                   {aiCached && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-md rounded-md" style={{ background: "var(--surface-alt)", color: "var(--text-muted)", border: "1px solid var(--border)">Sauvegardée</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-md rounded-md" style={{ background: "var(--surface-alt)", color: "var(--text-muted)", border: "1px solid var(--border)" }}>Sauvegardée</span>
                   )}
                 </div>
                 <button
@@ -765,7 +765,7 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
                           <label className="flex items-center gap-1.5 text-xs cursor-pointer" style={{ color: "var(--text-muted)" }}>
                             <input type="checkbox" checked={commentAnon} onChange={(e) => setCommentAnon(e.target.checked)} className="w-3 h-3" /> Anonyme
                           </label>
-                          <button onClick={postComment} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all" style={{ background: "var(--surface-active)", color: "var(--text-muted)", border: "1px solid var(--border) transition-colors">
+                          <button onClick={postComment} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all" style={{ background: "var(--surface-active)", color: "var(--text-muted)", border: "1px solid var(--border) transition-colors" }}>
                             <Send size={11} strokeWidth={1.5} /> Envoyer
                           </button>
                         </div>
