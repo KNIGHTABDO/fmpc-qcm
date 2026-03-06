@@ -1,14 +1,15 @@
-// @ts-nocheck"use client";
-import { useState, useEffect, useRef } from"react";
-import { motion, AnimatePresence } from"framer-motion";
-import { Settings, Brain, Sun, Moon, Check, LogOut, ChevronDown, Loader2, Trash2, AlertTriangle, Shield } from"lucide-react";
-import { useTheme } from"@/components/layout/ThemeProvider";
-import { useAuth } from"@/components/auth/AuthProvider";
-import { supabase } from"@/lib/supabase";
-import { useRouter } from"next/navigation";
-import Link from"next/link";
+// @ts-nocheck
+"use client";
+import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Settings, Brain, Sun, Moon, Check, LogOut, ChevronDown, Loader2, Trash2, AlertTriangle, Shield } from "lucide-react";
+import { useTheme } from "@/components/layout/ThemeProvider";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { supabase } from "@/lib/supabase";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 
-const ADMIN_EMAIL ="aabidaabdessamad@gmail.com";
+const ADMIN_EMAIL = "aabidaabdessamad@gmail.com";
 
 interface GhModel {
   id: string;
@@ -22,13 +23,13 @@ interface GhModel {
 }
 
 function modelLabel(id: string): string {
-  return id.replace(/-/g,"");
+  return id.replace(/-/g, " ");
 }
 
 const PROVIDER_COLORS: Record<string, string> = {
-  OpenAI:"#10b981", Anthropic:"#d4a27f", Google:"#4285f4",
-  Meta:"#0866ff", Mistral:"#ff7000", Microsoft:"#00a4ef",
-  Cohere:"#39594D", AI21:"#7c3aed", xAI:"#1da1f2", DeepSeek:"#3b82f6",
+  OpenAI: "#10b981", Anthropic: "#d4a27f", Google: "#4285f4",
+  Meta: "#0866ff", Mistral: "#ff7000", Microsoft: "#00a4ef",
+  Cohere: "#39594D", AI21: "#7c3aed", xAI: "#1da1f2", DeepSeek: "#3b82f6",
 };
 
 // ── Confirmation Modal ────────────────────────────────────────────────────────
@@ -37,7 +38,7 @@ function ResetConfirmModal({
 }: { open: boolean; onClose: () => void; onConfirm: () => void; loading: boolean }) {
   useEffect(() => {
     if (!open) return;
-    const h = (e: KeyboardEvent) => { if (e.key ==="Escape") onClose(); };
+    const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
   }, [open, onClose]);
@@ -51,31 +52,31 @@ function ResetConfirmModal({
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={onClose}
             className="fixed inset-0 z-40"
-            style={{ background:"rgba(0,0,0,0.55)", backdropFilter:"blur(4px)" }}
+            style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)" }}
           />
           {/* Sheet */}
           <motion.div
-            initial={{ y:"100%" }} animate={{ y: 0 }} exit={{ y:"100%" }}
-            transition={{ type:"spring", stiffness: 340, damping: 32 }}
+            initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
+            transition={{ type: "spring", stiffness: 340, damping: 32 }}
             className="fixed bottom-0 left-0 right-0 z-50 max-w-lg mx-auto rounded-t-3xl border-t border-x p-6 space-y-5"
-            style={{ background:"var(--bg)", borderColor:"var(--border)" }}
+            style={{ background: "var(--bg)", borderColor: "var(--border)" }}
           >
             {/* Handle */}
-            <div className="w-10 h-1 rounded-full mx-auto" style={{ background:"var(--border-strong)" }} />
+            <div className="w-10 h-1 rounded-full mx-auto" style={{ background: "var(--border-strong)" }} />
 
             {/* Icon */}
             <div className="flex flex-col items-center text-center gap-3 pt-1">
               <div className="w-14 h-14 rounded-2xl flex items-center justify-center"
-                style={{ background:"var(--error-subtle)", border:"1px solid var(--error-border)" }}>
-                <AlertTriangle strokeWidth={1.5} className="w-6 h-6" style={{ color:"var(--error)" }} />
+                style={{ background: "var(--error-subtle)", border: "1px solid var(--error-border)" }}>
+                <AlertTriangle className="w-6 h-6" style={{ color: "var(--error)" }} />
               </div>
               <div>
-                <h2 className="text-base font-bold mb-1.5" style={{ color:"var(--text)" }}>
+                <h2 className="text-base font-bold mb-1.5" style={{ color: "var(--text)" }}>
                   Réinitialiser les statistiques ?
                 </h2>
-                <p className="text-sm leading-relaxed" style={{ color:"var(--text-muted)" }}>
+                <p className="text-sm leading-relaxed" style={{ color: "var(--text-muted)" }}>
                   Toutes vos réponses, votre progression et votre série de jours seront supprimées
-                  de façon <span className="font-semibold" style={{ color:"var(--text)" }}>permanente</span>.
+                  de façon <span className="font-semibold" style={{ color: "var(--text)" }}>permanente</span>.
                   Cette action est irréversible.
                 </p>
               </div>
@@ -88,16 +89,16 @@ function ResetConfirmModal({
                 onClick={onConfirm}
                 disabled={loading}
                 className="w-full py-3.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-60"
-                style={{ background:"var(--error)", color:"white" }}
+                style={{ background: "var(--error)", color: "white" }}
               >
-                {loading ? <Loader2 strokeWidth={1.5} className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                {loading ?"Suppression…" :"Oui, tout supprimer"}
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                {loading ? "Suppression…" : "Oui, tout supprimer"}
               </motion.button>
               <button
                 onClick={onClose}
                 disabled={loading}
                 className="w-full py-3.5 rounded-xl text-sm font-semibold border transition-all"
-                style={{ borderColor:"var(--border)", color:"var(--text)", background:"transparent" }}
+                style={{ borderColor: "var(--border)", color: "var(--text)", background: "transparent" }}
               >
                 Annuler
               </button>
@@ -132,7 +133,7 @@ export default function SettingsPage() {
   const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
 
   useEffect(() => {
-    const s = (profile?.preferences as Record<string, string> | undefined)?.ai_model ??"";
+    const s = (profile?.preferences as Record<string, string> | undefined)?.ai_model ?? "";
     setSelectedModel(s); // empty string = no saved pref → stale guard will set admin default
   }, [profile]);
 
@@ -145,7 +146,7 @@ export default function SettingsPage() {
         // Stale model guard: if saved preference doesn't exist in live list, reset to default
         setSelectedModel(prev => {
           const ids = new Set(data.map((m: GhModel) => m.id));
-          const adminDefault = data.find((m: GhModel) => m.is_default)?.id ?? data[0]?.id ??"";
+          const adminDefault = data.find((m: GhModel) => m.is_default)?.id ?? data[0]?.id ?? "";
           // Empty string = freshly initialized (no saved pref) → use admin default
           if (!prev || !ids.has(prev)) {
             // Auto-persist corrected model so DB matches what UI shows
@@ -161,8 +162,8 @@ export default function SettingsPage() {
         });
       })
       .catch(() => setModels([
-        { id:"gpt-5-mini", name:"GPT-5 Mini", publisher:"OpenAI", tier:"standard", is_default: true },
-        { id:"gpt-4o", name:"GPT-4o", publisher:"OpenAI", tier:"premium" },
+        { id: "gpt-5-mini", name: "GPT-5 Mini", publisher: "OpenAI", tier: "standard", is_default: true },
+        { id: "gpt-4o", name: "GPT-4o", publisher: "OpenAI", tier: "premium" },
       ] as GhModel[]))
       .finally(() => setLoadingModels(false));
   }, []);
@@ -170,7 +171,7 @@ export default function SettingsPage() {
   useEffect(() => {
     if (modelOpen && triggerRef.current) {
       const rect = triggerRef.current.getBoundingClientRect();
-      setDropdownStyle({ position:"fixed", top: rect.bottom + 4, left: rect.left, width: rect.width, zIndex: 9999 });
+      setDropdownStyle({ position: "fixed", top: rect.bottom + 4, left: rect.left, width: rect.width, zIndex: 9999 });
     }
   }, [modelOpen]);
 
@@ -222,13 +223,13 @@ export default function SettingsPage() {
         loading={resetting}
       />
 
-      <div className="min-h-screen pb-24" style={{ background:"var(--bg)" }}>
+      <div className="min-h-screen pb-24" style={{ background: "var(--bg)" }}>
         <div className="max-w-lg mx-auto px-4 pt-8 space-y-6">
 
           {/* Header */}
           <div>
-            <h1 className="text-2xl font-bold" style={{ color:"var(--text)" }}>Paramètres</h1>
-            <p className="text-sm mt-1" style={{ color:"var(--text-muted)" }}>Personnalisez votre expérience</p>
+            <h1 className="text-2xl font-bold" style={{ color: "var(--text)" }}>Paramètres</h1>
+            <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>Personnalisez votre expérience</p>
           </div>
 
           {/* Reset success banner */}
@@ -236,9 +237,9 @@ export default function SettingsPage() {
             {resetDone && (
               <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
                 className="flex items-center gap-3 px-4 py-3 rounded-xl"
-                style={{ background:"var(--success-subtle)", border:"1px solid var(--success-border)" }}>
-                <Check strokeWidth={1.5} className="w-4 h-4 flex-shrink-0" style={{ color:"var(--success)" }} />
-                <p className="text-sm font-medium" style={{ color:"var(--success)" }}>
+                style={{ background: "var(--success-subtle)", border: "1px solid var(--success-border)" }}>
+                <Check className="w-4 h-4 flex-shrink-0" style={{ color: "var(--success)" }} />
+                <p className="text-sm font-medium" style={{ color: "var(--success)" }}>
                   Statistiques réinitialisées avec succès.
                 </p>
               </motion.div>
@@ -248,26 +249,26 @@ export default function SettingsPage() {
           {/* ── AI Section ── */}
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
             className="rounded-2xl border p-4 space-y-4"
-            style={{ background:"var(--surface)", borderColor:"var(--border)" }}>
+            style={{ background: "var(--surface)", borderColor: "var(--border)" }}>
             <div className="flex items-center gap-2">
-              <Brain strokeWidth={1.5} size={15} style={{ color:"var(--text-muted)" }} />
-              <span className="text-sm font-semibold" style={{ color:"var(--text)" }}>Intelligence Artificielle</span>
+              <Brain size={15} style={{ color: "var(--accent)" }} />
+              <span className="text-sm font-semibold" style={{ color: "var(--text)" }}>Intelligence Artificielle</span>
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-medium" style={{ color:"var(--text-muted)" }}>Modèle</label>
+              <label className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>Modèle</label>
               <button ref={triggerRef} onClick={() => setModelOpen(v => !v)} disabled={loadingModels}
                 className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border text-sm transition-all disabled:opacity-50"
-                style={{ background:"var(--surface-alt)", borderColor: modelOpen ?"var(--border-strong)" :"var(--border)", color:"var(--text)" }}>
+                style={{ background: "var(--surface-alt)", borderColor: modelOpen ? "var(--border-strong)" : "var(--border)", color: "var(--text)" }}>
                 <span className="flex items-center gap-2">
-                  {loadingModels && <Loader2 strokeWidth={1.5} size={13} className="animate-spin" style={{ color:"var(--text-muted)" }} />}
-                  {loadingModels ?"Chargement…" : (current.name || modelLabel(current.id))}
+                  {loadingModels && <Loader2 size={13} className="animate-spin" style={{ color: "var(--text-muted)" }} />}
+                  {loadingModels ? "Chargement…" : (current.name || modelLabel(current.id))}
                 </span>
-                <ChevronDown strokeWidth={1.5} size={14} style={{ color:"var(--text-muted)", transform: modelOpen ?"rotate(180deg)" :"rotate(0deg)", transition:"transform 0.15s" }} />
+                <ChevronDown size={14} style={{ color: "var(--text-muted)", transform: modelOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.15s" }} />
               </button>
               {modelOpen && (
-                <div ref={dropdownRef} style={{ ...dropdownStyle, background:"var(--bg)", border:"1px solid var(--border-strong)", borderRadius:"12px", overflow:"hidden", boxShadow:"var(--shadow)" }}>
+                <div ref={dropdownRef} style={{ ...dropdownStyle, background: "var(--bg)", border: "1px solid var(--border-strong)", borderRadius: "12px", overflow: "hidden", boxShadow: "var(--shadow)" }}>
                   {/* Search input */}
-                  <div className="px-3 py-2 border-b" style={{ borderColor:"var(--border)" }}>
+                  <div className="px-3 py-2 border-b" style={{ borderColor: "var(--border)" }}>
                     <input
                       autoFocus
                       type="text"
@@ -278,98 +279,98 @@ export default function SettingsPage() {
                         const filtered = models.filter(m => {
                           if (!modelSearch) return true;
                           const q = modelSearch.toLowerCase();
-                          return (m.name || m.id).toLowerCase().includes(q) || (m.publisher ??"").toLowerCase().includes(q);
+                          return (m.name || m.id).toLowerCase().includes(q) || (m.publisher ?? "").toLowerCase().includes(q);
                         });
-                        if (e.key ==="ArrowDown") { e.preventDefault(); setHighlightIdx(i => Math.min(i + 1, filtered.length - 1)); }
-                        else if (e.key ==="ArrowUp") { e.preventDefault(); setHighlightIdx(i => Math.max(i - 1, 0)); }
-                        else if (e.key ==="Enter" && filtered[highlightIdx]) { e.preventDefault(); setSelectedModel(filtered[highlightIdx].id); setModelOpen(false); setModelSearch(""); }
-                        else if (e.key ==="Escape") { e.preventDefault(); setModelOpen(false); setModelSearch(""); }
+                        if (e.key === "ArrowDown") { e.preventDefault(); setHighlightIdx(i => Math.min(i + 1, filtered.length - 1)); }
+                        else if (e.key === "ArrowUp") { e.preventDefault(); setHighlightIdx(i => Math.max(i - 1, 0)); }
+                        else if (e.key === "Enter" && filtered[highlightIdx]) { e.preventDefault(); setSelectedModel(filtered[highlightIdx].id); setModelOpen(false); setModelSearch(""); }
+                        else if (e.key === "Escape") { e.preventDefault(); setModelOpen(false); setModelSearch(""); }
                       }}
                       className="w-full text-xs px-2.5 py-1.5 rounded-lg outline-none"
-                      style={{ background:"var(--surface-alt)", border:"1px solid var(--border)", color:"var(--text)", caretColor:"var(--accent)" }}
+                      style={{ background: "var(--surface-alt)", border: "1px solid var(--border)", color: "var(--text)", caretColor: "var(--accent)" }}
                     />
                   </div>
                   {/* Model list */}
-                  <div style={{ overflowY:"auto", maxHeight:"220px" }}>
+                  <div style={{ overflowY: "auto", maxHeight: "220px" }}>
                     {models
                       .filter(m => {
                         if (!modelSearch) return true;
                         const q = modelSearch.toLowerCase();
-                        return (m.name || m.id).toLowerCase().includes(q) || (m.publisher ??"").toLowerCase().includes(q);
+                        return (m.name || m.id).toLowerCase().includes(q) || (m.publisher ?? "").toLowerCase().includes(q);
                       })
                       .map(m => (
                         <button key={m.id} onClick={() => { setSelectedModel(m.id); setModelOpen(false); setModelSearch(""); }}
                           className="w-full flex items-center justify-between px-4 py-2.5 text-sm text-left transition-colors hover:bg-white/5"
-                          style={{ borderBottom:"1px solid var(--border)", color:"var(--text)", background: selectedModel === m.id ?"var(--surface-alt)" :"transparent" }}
+                          style={{ borderBottom: "1px solid var(--border)", color: "var(--text)", background: selectedModel === m.id ? "var(--surface-alt)" : "transparent" }}
                           onMouseEnter={e => setHighlightIdx(models.indexOf(m))}
                           aria-selected={selectedModel === m.id}>
                           <div>
                             <div className="font-medium flex items-center gap-2">
-                              <div className="w-1.5 h-1.5 rounded-full" style={{ background: PROVIDER_COLORS[m.publisher] ??"var(--text-muted)" }} />
+                              <div className="w-1.5 h-1.5 rounded-full" style={{ background: PROVIDER_COLORS[m.publisher] ?? "var(--text-muted)" }} />
                               {m.name || modelLabel(m.id)}
                             </div>
                             <div className="flex items-center gap-1.5 mt-0.5">
                               {m.publisher && (
                                 <div className="flex items-center gap-1.5">
-                                  <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: PROVIDER_COLORS[m.publisher] ??"var(--text-muted)" }} />
-                                  <span className="text-xs" style={{ color:"var(--text-muted)" }}>{m.publisher}</span>
+                                  <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: PROVIDER_COLORS[m.publisher] ?? "var(--text-muted)" }} />
+                                  <span className="text-xs" style={{ color: "var(--text-muted)" }}>{m.publisher}</span>
                                   {(() => {
                                     const mp = (m as GhModel & { premium_multiplier?: number }).premium_multiplier;
-                                    if (mp === 3) return <span className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold tabular-nums" style={{ background:"rgba(248,113,113,0.12)", color:"#f87171", border:"1px solid rgba(248,113,113,0.2)" }}>3×</span>;
-                                    if (mp === 1) return <span className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold tabular-nums" style={{ background:"rgba(168,85,247,0.12)", color:"#c084fc", border:"1px solid rgba(168,85,247,0.2)" }}>1×</span>;
-                                    return <span className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold" style={{ background:"rgba(34,197,94,0.1)", color:"#4ade80", border:"1px solid rgba(34,197,94,0.15)" }}>Gratuit</span>;
+                                    if (mp === 3) return <span className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold tabular-nums" style={{ background: "rgba(248,113,113,0.12)", color: "#f87171", border: "1px solid rgba(248,113,113,0.2)" }}>3×</span>;
+                                    if (mp === 1) return <span className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold tabular-nums" style={{ background: "rgba(168,85,247,0.12)", color: "#c084fc", border: "1px solid rgba(168,85,247,0.2)" }}>1×</span>;
+                                    return <span className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold" style={{ background: "rgba(34,197,94,0.1)", color: "#4ade80", border: "1px solid rgba(34,197,94,0.15)" }}>Gratuit</span>;
                                   })()}
-                                  {(m as GhModel & { is_default?: boolean }).is_default && <span className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold" style={{ background:"rgba(34,197,94,0.1)", color:"#4ade80" }}>défaut</span>}
+                                  {(m as GhModel & { is_default?: boolean }).is_default && <span className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold" style={{ background: "rgba(34,197,94,0.1)", color: "#4ade80" }}>défaut</span>}
                                 </div>
                               )}
-                              {(m as GhModel & { supports_tools?: boolean }).supports_tools && <span className="text-[10px] px-1 rounded" style={{ background:"rgba(99,179,237,0.1)", color:"var(--text-muted)" }}>tools</span>}
-                              {(m as GhModel & { supports_vision?: boolean }).supports_vision && <span className="text-[10px] px-1 rounded" style={{ background:"rgba(168,85,247,0.1)", color:"#a855f7" }}>vision</span>}
+                              {(m as GhModel & { supports_tools?: boolean }).supports_tools && <span className="text-[10px] px-1 rounded" style={{ background: "rgba(99,179,237,0.1)", color: "var(--accent)" }}>tools</span>}
+                              {(m as GhModel & { supports_vision?: boolean }).supports_vision && <span className="text-[10px] px-1 rounded" style={{ background: "rgba(168,85,247,0.1)", color: "#a855f7" }}>vision</span>}
                             </div>
                           </div>
-                          {selectedModel === m.id && <Check strokeWidth={1.5} size={13} style={{ color:"var(--text-muted)" }} />}
+                          {selectedModel === m.id && <Check size={13} style={{ color: "var(--accent)" }} />}
                         </button>
                       ))}
                     {models.filter(m => {
                       if (!modelSearch) return true;
                       const q = modelSearch.toLowerCase();
-                      return (m.name || m.id).toLowerCase().includes(q) || (m.publisher ??"").toLowerCase().includes(q);
+                      return (m.name || m.id).toLowerCase().includes(q) || (m.publisher ?? "").toLowerCase().includes(q);
                     }).length === 0 && (
-                      <div className="px-4 py-4 text-xs text-center" style={{ color:"var(--text-muted)" }}>
+                      <div className="px-4 py-4 text-xs text-center" style={{ color: "var(--text-muted)" }}>
                         Aucun modèle trouvé
                       </div>
                     )}
                   </div>
                 </div>
               )}
-              <p className="text-xs" style={{ color:"var(--text-muted)" }}>
-                Alimenté par{""}
-                <span style={{ color:"var(--text-muted)" }}>Copilot API</span>
-                {""}— gratuit, aucune clé requise.
+              <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+                Alimenté par{" "}
+                <span style={{ color: "var(--accent)" }}>Copilot API</span>
+                {" "}— gratuit, aucune clé requise.
               </p>
             </div>
             <motion.button whileTap={{ scale: 0.97 }} onClick={save}
               className="w-full py-2.5 rounded-xl text-sm font-semibold transition-all"
-              style={{ background: saved ?"var(--success-subtle)" :"var(--text)", color: saved ?"var(--success)" :"var(--bg)", border: saved ?"1px solid var(--success-border)" :"none" }}>
-              {saved ?"✓ Enregistré" :"Enregistrer"}
+              style={{ background: saved ? "var(--success-subtle)" : "var(--text)", color: saved ? "var(--success)" : "var(--bg)", border: saved ? "1px solid var(--success-border)" : "none" }}>
+              {saved ? "✓ Enregistré" : "Enregistrer"}
             </motion.button>
           </motion.div>
 
           {/* ── Appearance ── */}
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
             className="rounded-2xl border p-4"
-            style={{ background:"var(--surface)", borderColor:"var(--border)" }}>
+            style={{ background: "var(--surface)", borderColor: "var(--border)" }}>
             <div className="flex items-center gap-2 mb-3">
-              {theme ==="dark" ? <Moon strokeWidth={1.5} size={15} style={{ color:"var(--text-muted)" }} /> : <Sun strokeWidth={1.5} size={15} style={{ color:"var(--text-muted)" }} />}
-              <span className="text-sm font-semibold" style={{ color:"var(--text)" }}>Apparence</span>
+              {theme === "dark" ? <Moon size={15} style={{ color: "var(--accent)" }} /> : <Sun size={15} style={{ color: "var(--accent)" }} />}
+              <span className="text-sm font-semibold" style={{ color: "var(--text)" }}>Apparence</span>
             </div>
             <button onClick={toggle}
               className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border text-sm transition-all"
-              style={{ background:"var(--surface-alt)", borderColor:"var(--border)", color:"var(--text)" }}>
-              <span>{theme ==="dark" ?"Mode clair" :"Mode sombre"}</span>
+              style={{ background: "var(--surface-alt)", borderColor: "var(--border)", color: "var(--text)" }}>
+              <span>{theme === "dark" ? "Mode clair" : "Mode sombre"}</span>
               <div className="relative w-10 h-5 rounded-full transition-colors"
-                style={{ background: theme ==="dark" ?"var(--accent)" :"var(--surface-alt)" }}>
+                style={{ background: theme === "dark" ? "var(--accent)" : "var(--surface-alt)" }}>
                 <div className="absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform"
-                  style={{ transform: theme ==="dark" ?"translateX(20px)" :"translateX(2px)" }} />
+                  style={{ transform: theme === "dark" ? "translateX(20px)" : "translateX(2px)" }} />
               </div>
             </button>
           </motion.div>
@@ -378,20 +379,20 @@ export default function SettingsPage() {
           {user && (
             <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
               className="rounded-2xl border p-4 space-y-3"
-              style={{ background:"var(--surface)", borderColor:"var(--border)" }}>
+              style={{ background: "var(--surface)", borderColor: "var(--border)" }}>
               <div className="flex items-center gap-2">
-                <Trash2 size={15} style={{ color:"var(--text-muted)" }} />
-                <span className="text-sm font-semibold" style={{ color:"var(--text)" }}>Données</span>
+                <Trash2 size={15} style={{ color: "var(--text-muted)" }} />
+                <span className="text-sm font-semibold" style={{ color: "var(--text)" }}>Données</span>
               </div>
               <div className="px-1">
-                <p className="text-xs" style={{ color:"var(--text-muted)" }}>
+                <p className="text-xs" style={{ color: "var(--text-muted)" }}>
                   Supprimez toutes vos réponses, votre progression et votre série de révision. Cette action est permanente.
                 </p>
               </div>
               <motion.button onClick={() => setResetOpen(true)}
                 whileHover={{ opacity: 0.8 }} whileTap={{ scale: 0.98 }}
                 className="w-full flex items-center gap-2 px-3.5 py-2.5 rounded-xl border text-sm font-medium"
-                style={{ borderColor:"var(--error-border)", color:"var(--error)", background:"var(--error-subtle)" }}>
+                style={{ borderColor: "var(--error-border)", color: "var(--error)", background: "var(--error-subtle)" }}>
                 <Trash2 size={14} />
                 Réinitialiser les statistiques
               </motion.button>
@@ -402,18 +403,18 @@ export default function SettingsPage() {
           {user && (
             <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
               className="rounded-2xl border p-4 space-y-3"
-              style={{ background:"var(--surface)", borderColor:"var(--border)" }}>
+              style={{ background: "var(--surface)", borderColor: "var(--border)" }}>
               <div className="flex items-center gap-2">
-                <Settings strokeWidth={1.5} size={15} style={{ color:"var(--text-muted)" }} />
-                <span className="text-sm font-semibold" style={{ color:"var(--text)" }}>Compte</span>
+                <Settings size={15} style={{ color: "var(--accent)" }} />
+                <span className="text-sm font-semibold" style={{ color: "var(--text)" }}>Compte</span>
               </div>
               <div className="px-1 space-y-0.5">
-                <p className="text-sm font-medium" style={{ color:"var(--text)" }}>{profile?.full_name ??"Utilisateur"}</p>
-                <p className="text-xs" style={{ color:"var(--text-muted)" }}>{user.email}</p>
+                <p className="text-sm font-medium" style={{ color: "var(--text)" }}>{profile?.full_name ?? "Utilisateur"}</p>
+                <p className="text-xs" style={{ color: "var(--text-muted)" }}>{user.email}</p>
               </div>
               <button onClick={handleSignOut}
                 className="w-full flex items-center gap-2 px-3.5 py-2.5 rounded-xl border text-sm transition-all hover:border-red-500/30 hover:bg-red-500/5"
-                style={{ borderColor:"var(--border)", color:"rgb(239,68,68)" }}>
+                style={{ borderColor: "var(--border)", color: "rgb(239,68,68)" }}>
                 <LogOut size={14} />
                 Se déconnecter
               </button>
@@ -425,17 +426,17 @@ export default function SettingsPage() {
           {user?.email === ADMIN_EMAIL && (
             <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }}
               className="rounded-2xl border p-4 space-y-3"
-              style={{ background:"var(--surface)", borderColor:"var(--border)" }}>
+              style={{ background: "var(--surface)", borderColor: "var(--border)" }}>
               <div className="flex items-center gap-2">
-                <Shield size={15} style={{ color:"var(--text-muted)" }} />
-                <span className="text-sm font-semibold" style={{ color:"var(--text)" }}>Administration</span>
+                <Shield size={15} style={{ color: "var(--accent)" }} />
+                <span className="text-sm font-semibold" style={{ color: "var(--text)" }}>Administration</span>
               </div>
-              <p className="text-xs px-1" style={{ color:"var(--text-muted)" }}>
+              <p className="text-xs px-1" style={{ color: "var(--text-muted)" }}>
                 Accès au panneau de gestion de la plateforme.
               </p>
               <Link href="/admin"
                 className="w-full flex items-center gap-2 px-3.5 py-2.5 rounded-xl border text-sm font-medium transition-all"
-                style={{ borderColor:"var(--accent)", color:"var(--text-muted)", background:"var(--surface-alt)" }}>
+                style={{ borderColor: "var(--accent)", color: "var(--accent)", background: "var(--surface-alt)" }}>
                 <Shield size={14} />
                 Panneau Admin
               </Link>
@@ -443,7 +444,7 @@ export default function SettingsPage() {
           )}
           {!user && (
             <div className="text-center">
-              <a href="/auth" className="text-sm underline underline-offset-2" style={{ color:"var(--text-muted)" }}>
+              <a href="/auth" className="text-sm underline underline-offset-2" style={{ color: "var(--accent)" }}>
                 Créer un compte gratuit
               </a>
             </div>
