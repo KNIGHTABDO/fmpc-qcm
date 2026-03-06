@@ -250,7 +250,7 @@ function SemestresPageInner() {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.35, delay: 0.10 }}
             >
-              <Link strokeWidth={1.5}
+              <Link
                 href={`/quiz/${lastSession.activity_id}`}
                 className="flex items-center justify-between px-4 py-3.5 rounded-xl transition-all duration-150"
                 style={{
@@ -290,7 +290,7 @@ function SemestresPageInner() {
           transition={{ duration: 0.35, delay: 0.12 }}
           className="grid grid-cols-2 gap-2"
         >
-          <Link strokeWidth={1.5}
+          <Link
             href="/chatwithai"
             className="flex items-center gap-2.5 px-3 py-3 rounded-xl transition-all duration-150"
             style={{ background: "var(--surface-alt)", border: "1px solid var(--border)" }}
@@ -300,7 +300,7 @@ function SemestresPageInner() {
               Chat IA
             </span>
           </Link>
-          <Link strokeWidth={1.5}
+          <Link
             href="/flashcards"
             className="flex items-center gap-2.5 px-3 py-3 rounded-xl transition-all duration-150"
             style={{ background: "var(--surface-alt)", border: "1px solid var(--border)" }}
@@ -374,7 +374,7 @@ function SemestresPageInner() {
               const isUserSem = userSNum === semNum;
               return (
                 <motion.div key={sem.semestre_id} variants={item}>
-                  <Link strokeWidth={1.5}
+                  <Link
                     href={href}
                     className="flex items-center justify-between px-4 py-3.5 rounded-xl transition-all duration-150 group"
                     style={{
