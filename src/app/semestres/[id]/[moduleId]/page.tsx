@@ -116,7 +116,7 @@ function ModuleActivitiesPageInner({ params }: { params: Promise<{ id: string; m
         {/* Révision ciblée CTA */}
         {user && weakCount !== null && weakCount > 0 && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-            <Link strokeWidth={1.5} href={`/revision/${modId}`}>
+            <Link href={`/revision/${modId}`}>
               <div className="rounded-2xl border px-5 py-4 flex items-center gap-4 transition-all hover:bg-orange-500/10 cursor-pointer"
                 style={{ background: "rgba(249,115,22,0.06)", borderColor: "rgba(249,115,22,0.25)" }}>
                 <div className="w-10 h-10 rounded-xl bg-orange-500/15 border border-orange-500/30 flex items-center justify-center flex-shrink-0">
@@ -175,7 +175,7 @@ function ModuleActivitiesPageInner({ params }: { params: Promise<{ id: string; m
 
               return (
                 <motion.div key={act.id} variants={{ hidden: { opacity: 0, y: 6 }, visible: { opacity: 1, y: 0 } }}>
-                  <Link strokeWidth={1.5} href={`/quiz/${act.id}`}>
+                  <Link href={`/quiz/${act.id}`}>
                     <div className="rounded-2xl border px-5 py-4 transition-all cursor-pointer hover:bg-white/[0.06]"
                       style={{ background: "var(--surface)", borderColor: "var(--border)" }}>
                       <div className="flex items-center gap-3">
